@@ -16,6 +16,17 @@ class TokenData(BaseModel):
     role: Optional[str] = None
     user_id: Optional[int] = None
 
+class TokenVerifyResponse(BaseModel):
+    valid: bool
+    user_id: int
+    email: str
+    role: str
+    full_name: str
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=4, description="New password must be at least 4 characters")
+
 # User Schemas
 class UserBase(BaseModel):
     email: EmailStr

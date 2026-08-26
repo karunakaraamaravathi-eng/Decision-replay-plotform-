@@ -1,0 +1,6 @@
+@echo off
+echo [*] Resetting SQLite database: decision_replay.db...
+if exist "decision_replay.db" del /f /q "decision_replay.db"
+echo [*] Initializing fresh database and default seed records...
+python -c "from app.database import engine, Base, SessionLocal; from app.seed import seed_database; Base.metadata.create_all(bind=engine); db = SessionLocal(); seed_database(db); db.close()"
+echo [OK] Database reset and seeded successfully!

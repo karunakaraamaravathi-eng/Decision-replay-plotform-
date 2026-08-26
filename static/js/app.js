@@ -22,7 +22,7 @@ function setupEventListeners() {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-      
+
       const tabId = e.target.getAttribute('data-tab');
       e.target.classList.add('active');
       const contentEl = document.getElementById(tabId);
@@ -31,6 +31,7 @@ function setupEventListeners() {
       if (tabId === 'users-tab') loadUsers();
       if (tabId === 'audit-tab') loadAuditLogs();
       if (tabId === 'dashboard-tab') loadDashboardStats();
+      if (tabId === 'db-tab') loadLiveDatabase();
     });
   });
 
@@ -50,7 +51,7 @@ function checkAuth() {
     document.getElementById('guest-controls').style.display = 'none';
     document.getElementById('user-controls').style.display = 'flex';
     document.getElementById('user-name-display').innerText = state.user.full_name;
-    
+
     const roleBadge = document.getElementById('user-role-badge');
     roleBadge.innerText = state.user.role;
     roleBadge.className = `role-pill role-${state.user.role}`;
@@ -105,7 +106,7 @@ async function quickLogin(role) {
 
     checkAuth();
     showToast(`Logged in as ${data.full_name} (${data.role})`);
-    
+
     // Switch to Dashboard Tab
     document.querySelector('[data-tab="dashboard-tab"]')?.click();
 
@@ -391,6 +392,114 @@ async function loadWireframeSpecs() {
   }
 }
 
+// Load Live SQLite Database Data
+async function loadLiveDatabase() {
+  const container = document.getElementById('db-tables-view-container');
+  if (!container) return;
+  
+  container.innerHTML = '<p style="color:var(--text-muted);"><span class="loading-spinner"></span> Loading real-time database records from decision_replay.db...</p>';
+  
+  try {
+    const res = await fetch(`${API_BASE}/wireframes/db-data`);
+    const data = await res.json();
+    
+    if (!res.ok || data.status !== 'online') {
+      container.innerHTML = `<p style="color:var(--danger)">Failed to load database: ${data.message || 'Unknown error'}</p>`;
+      return;
+    }
+    
+    const tables = data.tables || {};
+    const tableKeys = Object.keys(tables);
+    
+    if (tableKeys.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);">No tables found in database.</p>';
+      return;
+    }
+    
+    let html = `
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+        ${tableKeys.map(name => `
+          <button class="btn btn-sm ${name === 'users' ? 'btn-primary' : 'btn-secondary'}" 
+                  id="tab-btn-db-${name}"
+                  onclick="selectDbTable('${name}')">
+            📊 ${name.toUpperCase()} <span style="opacity:0.75; font-size:0.75rem;">(${tables[name].total_rows} rows)</span>
+          </button>
+        `).join('')}
+      </div>
+      
+      <div id="db-active-table-view"></div>
+    `;
+    
+    container.innerHTML = html;
+    window._cachedDbTables = tables;
+    selectDbTable(tableKeys[0]);
+    
+  } catch (err) {
+    container.innerHTML = `<p style="color:var(--danger)">Error querying database: ${err.message}</p>`;
+  }
+}
+
+// Render active table view
+function selectDbTable(tableName) {
+  const tables = window._cachedDbTables;
+  if (!tables || !tables[tableName]) return;
+  
+  // Update button highlights
+  Object.keys(tables).forEach(t => {
+    const btn = document.getElementById(`tab-btn-db-${t}`);
+    if (btn) {
+      btn.className = `btn btn-sm ${t === tableName ? 'btn-primary' : 'btn-secondary'}`;
+    }
+  });
+  
+  const target = document.getElementById('db-active-table-view');
+  if (!target) return;
+  
+  const tableData = tables[tableName];
+  const cols = tableData.columns || [];
+  const records = tableData.records || [];
+  
+  let viewHtml = `
+    <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:8px; padding:1rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <h4 style="color:var(--accent); margin:0;">Table: <code>${tableName}</code> (${records.length} records)</h4>
+        <span style="font-size:0.8rem; color:var(--text-muted);">Columns: ${cols.join(', ')}</span>
+      </div>
+  `;
+  
+  if (records.length === 0) {
+    viewHtml += `<p style="color:var(--text-muted); font-size:0.85rem; padding:1rem; text-align:center;">No records currently in table <code>${tableName}</code>.</p>`;
+  } else {
+    viewHtml += `
+      <div class="table-container" style="max-height:400px; overflow-y:auto;">
+        <table>
+          <thead>
+            <tr>
+              ${cols.map(c => `<th>${c}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map(row => `
+              <tr>
+                ${cols.map(c => {
+                  let val = row[c];
+                  if (val === null || val === undefined) return '<td style="color:var(--text-muted); font-style:italic;">NULL</td>';
+                  if (c === 'role') return `<td><span class="role-pill role-${val}">${val}</span></td>`;
+                  if (typeof val === 'string' && val.length > 50) return `<td title="${val}">${val.substring(0, 47)}...</td>`;
+                  return `<td>${val}</td>`;
+                }).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+  
+  viewHtml += `</div>`;
+  target.innerHTML = viewHtml;
+}
+
 // Simple Toast Notification
 function showToast(message) {
   const toast = document.createElement('div');
@@ -412,3 +521,4 @@ function showToast(message) {
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
+

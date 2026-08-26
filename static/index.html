@@ -56,6 +56,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="wireframe-tab">📐 Wireframes & Architecture</button>
       <button class="tab-btn" data-tab="dashboard-tab">📊 Role Dashboards</button>
+      <button class="tab-btn" id="nav-db-btn" data-tab="db-tab">🗄️ Database Live Viewer</button>
       <button class="tab-btn" id="nav-users-btn" data-tab="users-tab" style="display: none;">👥 User Management</button>
       <button class="tab-btn" id="nav-audit-btn" data-tab="audit-tab" style="display: none;">🛡️ Audit Logs</button>
     </div>
@@ -200,6 +201,25 @@
               <!-- Dynamically loaded -->
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 5: Live Database Viewer (decision_replay.db) -->
+    <div id="db-tab" class="tab-content" style="display: none;">
+      <div class="glass wireframe-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+          <div>
+            <h3>🗄️ SQLite Live Database Explorer (<code>decision_replay.db</code>)</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem;">Browse all database tables, columns, and records in real-time.</p>
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="loadLiveDatabase()">🔄 Refresh Data</button>
+          </div>
+        </div>
+
+        <div id="db-tables-view-container">
+          <p style="color:var(--text-muted);">Loading database tables...</p>
         </div>
       </div>
     </div>

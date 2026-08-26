@@ -1,7 +1,13 @@
+import os
+import sys
 import hashlib
 import hmac
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
+
+# Ensure workspace root is in sys.path when running file directly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -26,9 +32,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     """Create JWT access token with expiration."""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -70,5 +76,24 @@ def require_roles(allowed_roles: List[str]):
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Allowed roles: {', '.join(allowed_roles)}"
             )
-        return current_user
     return role_checker
+
+if __name__ == "__main__":
+    import os
+    import sys
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+    
+    print("\n" + "=" * 60)
+    print("  AUTH MODULE: SECURITY & JWT TEST")
+    print("=" * 60)
+    test_pwd = "expert_demo_pwd_123"
+    hashed = hash_password(test_pwd)
+    verified = verify_password(test_pwd, hashed)
+    print(f"[*] Plain Password:   {test_pwd}")
+    print(f"[*] Hashed Password:  {hashed}")
+    print(f"[*] Verified Status:  {verified}")
+    
+    # Test token creation
+    token = create_access_token({"sub": "admin@expert.org", "user_id": 1, "role": "Administrator"})
+    print(f"[*] Sample JWT Token: {token[:35]}...")
+    print("=" * 60 + "\n")

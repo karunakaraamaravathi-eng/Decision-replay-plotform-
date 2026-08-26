@@ -61,7 +61,7 @@ def update_user_role(
 
     # Audit log
     audit = AuditLog(
-        user_id=current_user.id,
+        user_id=current_user.id if current_user else None,
         action="ROLE_UPDATE",
         entity_type="User",
         entity_id=user.id,

@@ -98,6 +98,34 @@ def get_db_schema():
         ]
     }
 
+@router.get("/db-data")
+def get_db_data():
+    """Return live contents of all tables from decision_replay.db."""
+    import sqlite3
+    import os
+    db_file = "decision_replay.db"
+    if not os.path.exists(db_file):
+        return {"status": "error", "message": "Database not initialized yet."}
+    
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+    tables = [row[0] for row in cursor.fetchall()]
+    
+    result = {}
+    for t in tables:
+        cursor.execute(f"PRAGMA table_info({t})")
+        cols = [c[1] for c in cursor.fetchall()]
+        cursor.execute(f"SELECT * FROM {t}")
+        rows = cursor.fetchall()
+        result[t] = {
+            "columns": cols,
+            "total_rows": len(rows),
+            "records": [dict(zip(cols, r)) for r in rows]
+        }
+    conn.close()
+    return {"status": "online", "database": db_file, "tables": result}
+
 @router.get("/ui-specs")
 def get_ui_specs():
     """Return UI Wireframe layout specifications."""

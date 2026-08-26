@@ -1,3 +1,9 @@
+import os
+import sys
+
+# Ensure workspace root is in sys.path when running file directly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from sqlalchemy.orm import Session
 from app.models import User, Team, AuditLog
 from app.auth import hash_password
@@ -83,3 +89,20 @@ def seed_database(db: Session):
     db.commit()
 
     print("[SEED] Seeding completed successfully!")
+
+if __name__ == "__main__":
+    import os
+    import sys
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+    
+    from app.database import engine, Base, SessionLocal
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_database(db)
+        print("[*] Current seeded users:")
+        for u in db.query(User).all():
+            print(f"  - {u.full_name} ({u.role}) -> {u.email}")
+    finally:
+        db.close()
+

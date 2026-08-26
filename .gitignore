@@ -1,10 +1,47 @@
-# Python
+# ====================================
+# Python Bytecode & Cache Directories
+# ====================================
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
+
+# ====================================
+# Test & Coverage Caches
+# ====================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.cache
+.tox/
+.nox/
+
+# ====================================
+# SQLite & Database Artifacts
+# ====================================
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ====================================
+# Environment & Local Config
+# ====================================
+.env
+.env.local
+.env.*.local
+venv/
+ENV/
 env/
+.venv/
+
+# ====================================
+# Build & Distribution
+# ====================================
 build/
 develop-eggs/
 dist/
@@ -21,22 +58,10 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-ENV/
-env/
-
-# Pytest / Coverage
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Database
-*.db
-*.sqlite3
-
-# Environment & IDE
-.env
-.vscode/
+# ====================================
+# IDE & System Files
+# ====================================
 .idea/
-main.pyt
+Thumbs.db
+Desktop.ini
+.DS_Store

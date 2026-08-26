@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
@@ -9,8 +10,6 @@ from app.config import settings
 from app.database import engine, Base, get_db
 from app.seed import seed_database
 from app.routers import auth_router, users_router, teams_router, wireframes_router
-
-from contextlib import asynccontextmanager
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -67,3 +66,14 @@ def serve_spa():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return "<h1>Expert Decision Replay Platform API Active</h1><p>Visit <a href='/docs'>/docs</a> for Swagger API documentation.</p>"
+
+if __name__ == "__main__":
+    import uvicorn
+    print("\n" + "=" * 60)
+    print(f"  STARTING {settings.PROJECT_NAME}")
+    print("=" * 60)
+    print(f"[*] Access Web UI at:            http://127.0.0.1:8000")
+    print(f"[*] Access Swagger API Docs at:  http://127.0.0.1:8000/docs")
+    print(f"[*] Access Database Data at:     http://127.0.0.1:8000/api/wireframes/db-data")
+    print("=" * 60 + "\n")
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

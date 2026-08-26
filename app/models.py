@@ -1,7 +1,16 @@
+import os
+import sys
+
+# Ensure workspace root is in sys.path when running file directly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Float
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class User(Base):
     __tablename__ = "users"
@@ -13,7 +22,7 @@ class User(Base):
     role = Column(String, default="Employee", nullable=False) # Employee, Reviewer, Manager, Administrator
     department = Column(String, default="Engineering")
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
 
@@ -29,7 +38,7 @@ class Team(Base):
     name = Column(String, unique=True, nullable=False)
     description = Column(String)
     manager_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     # Relationships
     members = relationship("User", back_populates="team", foreign_keys=[User.team_id])
@@ -45,8 +54,8 @@ class Decision(Base):
     creator_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     version = Column(Integer, default=1)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
     # Relationships
     creator = relationship("User", back_populates="decisions")
@@ -77,7 +86,7 @@ class ApprovalWorkflow(Base):
     level = Column(Integer, default=1)
     status = Column(String, default="Pending") # Pending, Approved, Rejected
     comments = Column(Text)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=utc_now)
 
     decision = relationship("Decision", back_populates="approvals")
 
@@ -90,6 +99,18 @@ class AuditLog(Base):
     entity_type = Column(String, nullable=False) # User, Decision, Team, Approval
     entity_id = Column(Integer, nullable=True)
     details = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
     user = relationship("User", back_populates="audit_logs")
+
+if __name__ == "__main__":
+    import os
+    import sys
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+    
+    print("\n" + "=" * 60)
+    print("  SQLALCHEMY ORM MODELS OVERVIEW")
+    print("=" * 60)
+    models = [User, Team, Decision, Alternative, ApprovalWorkflow, AuditLog]
+    for m in models:
+        cols = [c.name for c in m.__table__.columns]
+        print(f"[*] Table: {m.__tablename__:<20} | Columns ({len(cols)}): {', '.join(cols)}")
+    print("=" * 60 + "\n")

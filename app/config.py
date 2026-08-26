@@ -22,3 +22,14 @@ class Settings:
     VALID_ROLES: list = ["Employee", "Reviewer", "Manager", "Administrator"]
 
 settings = Settings()
+
+if __name__ == "__main__":
+    print("\n" + "=" * 60)
+    print(f"  CONFIGURATION SETTINGS: {settings.PROJECT_NAME}")
+    print("=" * 60)
+    print(f"[*] Version:       {settings.VERSION}")
+    print(f"[*] API Base:      {settings.API_V1_STR}")
+    print(f"[*] Database URL:  {settings.DATABASE_URL}")
+    print(f"[*] Token Expiry:  {settings.ACCESS_TOKEN_EXPIRE_MINUTES} minutes")
+    print(f"[*] Valid Roles:   {', '.join(settings.VALID_ROLES)}")
+    print("=" * 60 + "\n")
