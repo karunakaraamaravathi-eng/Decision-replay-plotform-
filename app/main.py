@@ -59,6 +59,18 @@ def health_check():
         "milestone": "Milestone 1 (Week 1-2) Completed"
     }
 
+@app.get("/api/download-milestone1-pdf", tags=["Documentation"])
+def download_milestone1_pdf():
+    """Download Milestone 1 Verification PDF Report."""
+    pdf_path = os.path.join(os.path.dirname(__file__), "..", "docs", "Expert_Decision_Replay_Platform_Milestone_1_Report.pdf")
+    if os.path.exists(pdf_path):
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename="Expert_Decision_Replay_Platform_Milestone_1_Report.pdf"
+        )
+    return {"error": "Report PDF not found. Run generate_pdf_report.py first."}
+
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def serve_spa():
     """Serve main SPA web interface."""
