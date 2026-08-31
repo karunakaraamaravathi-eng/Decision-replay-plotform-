@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import engine, Base, get_db
 from app.seed import seed_database
-from app.routers import auth_router, users_router, teams_router, wireframes_router
+from app.routers import auth_router, users_router, teams_router, wireframes_router, decisions_router, alternatives_router, discussions_router, files_router
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -43,6 +43,10 @@ app.include_router(auth_router.router, prefix=settings.API_V1_STR)
 app.include_router(users_router.router, prefix=settings.API_V1_STR)
 app.include_router(teams_router.router, prefix=settings.API_V1_STR)
 app.include_router(wireframes_router.router, prefix=settings.API_V1_STR)
+app.include_router(decisions_router.router, prefix=settings.API_V1_STR)
+app.include_router(alternatives_router.router, prefix=settings.API_V1_STR)
+app.include_router(discussions_router.router, prefix=settings.API_V1_STR)
+app.include_router(files_router.router, prefix=settings.API_V1_STR)
 
 # Mount Static Files
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
@@ -56,7 +60,7 @@ def health_check():
         "status": "online",
         "platform": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "milestone": "Milestone 1 (Week 1-2) Completed"
+        "milestone": "Milestone 1 & Milestone 2 (Week 1-4) Completed - Decision Management & Collaboration Active"
     }
 
 @app.get("/api/download-milestone1-pdf", tags=["Documentation"])
@@ -70,6 +74,19 @@ def download_milestone1_pdf():
             filename="Expert_Decision_Replay_Platform_Milestone_1_Report.pdf"
         )
     return {"error": "Report PDF not found. Run generate_pdf_report.py first."}
+
+@app.get("/api/download-milestone2-pdf", tags=["Documentation"])
+def download_milestone2_pdf():
+    """Download Milestone 2 Verification PDF Report."""
+    pdf_path = os.path.join(os.path.dirname(__file__), "..", "docs", "Expert_Decision_Replay_Platform_Milestone_2_Report.pdf")
+    if os.path.exists(pdf_path):
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename="Expert_Decision_Replay_Platform_Milestone_2_Report.pdf"
+        )
+    return {"error": "Milestone 2 Report PDF not found. Run generate_pdf_report_m2.py first."}
+
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def serve_spa():

@@ -11,7 +11,7 @@
       "created_at",
       "team_id"
     ],
-    "total_rows": 7,
+    "total_rows": 5,
     "rows": [
       {
         "id": 1,
@@ -21,7 +21,7 @@
         "role": "Administrator",
         "department": "IT Operations",
         "is_active": 1,
-        "created_at": "2026-08-26 16:40:12.293765",
+        "created_at": "2026-08-31 13:01:05.996533",
         "team_id": 3
       },
       {
@@ -32,7 +32,7 @@
         "role": "Manager",
         "department": "Engineering",
         "is_active": 1,
-        "created_at": "2026-08-26 16:40:12.293771",
+        "created_at": "2026-08-31 13:01:05.996540",
         "team_id": 1
       },
       {
@@ -43,7 +43,7 @@
         "role": "Reviewer",
         "department": "Architecture Review Board",
         "is_active": 1,
-        "created_at": "2026-08-26 16:40:12.293772",
+        "created_at": "2026-08-31 13:01:05.996542",
         "team_id": 1
       },
       {
@@ -51,10 +51,10 @@
         "email": "employee@expert.org",
         "hashed_password": "b0da5dd3680031077f00dcbafe35e9c028305caed6831d7859d60afb55aa6860",
         "full_name": "David Chen (Software Engineer)",
-        "role": "Reviewer",
+        "role": "Employee",
         "department": "Engineering",
         "is_active": 1,
-        "created_at": "2026-08-26 16:40:12.293773",
+        "created_at": "2026-08-31 13:01:05.996544",
         "team_id": 1
       },
       {
@@ -65,30 +65,8 @@
         "role": "Manager",
         "department": "Infrastructure",
         "is_active": 1,
-        "created_at": "2026-08-26 16:40:12.293774",
+        "created_at": "2026-08-31 13:01:05.996546",
         "team_id": 2
-      },
-      {
-        "id": 6,
-        "email": "newuser_4f03cb@expert.org",
-        "hashed_password": "e224854ba1863857980fe914558d75d05ad651317e8fa14a48b3d271060f0b9e",
-        "full_name": "New Test User",
-        "role": "Employee",
-        "department": "Engineering",
-        "is_active": 1,
-        "created_at": "2026-08-26 16:40:14.696874",
-        "team_id": null
-      },
-      {
-        "id": 7,
-        "email": "pwd_test_624aa4@expert.org",
-        "hashed_password": "574e08fe3529c8da9089191cb88c3f8b93d8e826a09ae567c00ea880f0cb4d42",
-        "full_name": "Password Test User",
-        "role": "Employee",
-        "department": "Engineering",
-        "is_active": 1,
-        "created_at": "2026-08-26 16:40:14.874129",
-        "team_id": null
       }
     ]
   },
@@ -107,21 +85,21 @@
         "name": "Core Architecture Team",
         "description": "Handles core platform design and architecture standards.",
         "manager_id": null,
-        "created_at": "2026-08-26 16:40:12.276707"
+        "created_at": "2026-08-31 13:01:05.986399"
       },
       {
         "id": 2,
         "name": "DevOps & Infrastructure",
         "description": "Manages deployment, containers, and cloud infrastructure.",
         "manager_id": null,
-        "created_at": "2026-08-26 16:40:12.276713"
+        "created_at": "2026-08-31 13:01:05.986403"
       },
       {
         "id": 3,
         "name": "Security & Compliance",
         "description": "Oversees audit logs, RBAC, and system security.",
         "manager_id": null,
-        "created_at": "2026-08-26 16:40:12.276715"
+        "created_at": "2026-08-31 13:01:05.986404"
       }
     ]
   },
@@ -132,14 +110,55 @@
       "problem_statement",
       "category",
       "status",
+      "rationale",
       "creator_id",
       "team_id",
       "version",
       "created_at",
       "updated_at"
     ],
-    "total_rows": 0,
-    "rows": []
+    "total_rows": 3,
+    "rows": [
+      {
+        "id": 1,
+        "title": "Database Engine Selection for Replay Engine",
+        "problem_statement": "Choose between PostgreSQL and MongoDB for high-throughput decision audit logging and version timeline queries.",
+        "category": "Architecture",
+        "status": "Approved",
+        "rationale": "PostgreSQL provides ACID compliance, strong JSONB querying capabilities, and relational integrity for multi-level approval workflows.",
+        "creator_id": 2,
+        "team_id": 1,
+        "version": 2,
+        "created_at": "2026-08-31 13:01:06.009746",
+        "updated_at": "2026-08-31 13:01:06.009752"
+      },
+      {
+        "id": 2,
+        "title": "Cloud Infrastructure Deployment Model",
+        "problem_statement": "Evaluate Docker containerization vs AWS ECS vs Serverless functions for deploying application components.",
+        "category": "Infrastructure",
+        "status": "Under Review",
+        "rationale": "Docker containerization ensures portable local testing and simple cloud deployment via Docker Compose or Kubernetes.",
+        "creator_id": 5,
+        "team_id": 2,
+        "version": 1,
+        "created_at": "2026-08-31 13:01:06.009755",
+        "updated_at": "2026-08-31 13:01:06.009757"
+      },
+      {
+        "id": 3,
+        "title": "Zero-Trust Authentication & RBAC Policy",
+        "problem_statement": "Implement JWT with short token expiry and role-based permissions across Employee, Reviewer, Manager, and Admin roles.",
+        "category": "Security",
+        "status": "Approved",
+        "rationale": "JWT tokens combined with FastAPI dependencies provide seamless stateless validation and granular route protection.",
+        "creator_id": 1,
+        "team_id": 3,
+        "version": 1,
+        "created_at": "2026-08-31 13:01:06.009759",
+        "updated_at": "2026-08-31 13:01:06.009760"
+      }
+    ]
   },
   "audit_logs": {
     "columns": [
@@ -150,7 +169,7 @@
       "entity_id",
       "details"
     ],
-    "total_rows": 14,
+    "total_rows": 7,
     "rows": [
       {
         "id": 1,
@@ -158,7 +177,7 @@
         "action": "SYSTEM_INIT",
         "entity_type": "System",
         "entity_id": 1,
-        "details": "Initial Milestone 1 platform setup completed."
+        "details": "Initial Milestone 1 & 2 platform setup completed."
       },
       {
         "id": 2,
@@ -178,19 +197,19 @@
       },
       {
         "id": 4,
-        "user_id": 1,
-        "action": "LOGIN",
-        "entity_type": "User",
+        "user_id": 2,
+        "action": "DECISION_CREATE",
+        "entity_type": "Decision",
         "entity_id": 1,
-        "details": "User successfully logged in"
+        "details": "Created decision 'Database Engine Selection for Replay Engine'"
       },
       {
         "id": 5,
-        "user_id": 6,
-        "action": "REGISTER",
-        "entity_type": "User",
-        "entity_id": 6,
-        "details": "User registered with role: Employee"
+        "user_id": 3,
+        "action": "DECISION_UPDATE",
+        "entity_type": "Decision",
+        "entity_id": 1,
+        "details": "Approved decision and bumped version to 2"
       },
       {
         "id": 6,
@@ -202,67 +221,11 @@
       },
       {
         "id": 7,
-        "user_id": 1,
-        "action": "LOGIN",
-        "entity_type": "User",
+        "user_id": 2,
+        "action": "ATTACHMENT_UPLOAD",
+        "entity_type": "Decision",
         "entity_id": 1,
-        "details": "User successfully logged in"
-      },
-      {
-        "id": 8,
-        "user_id": null,
-        "action": "ROLE_UPDATE",
-        "entity_type": "User",
-        "entity_id": 4,
-        "details": "Updated user 'employee@expert.org' role from Employee to Reviewer"
-      },
-      {
-        "id": 9,
-        "user_id": 1,
-        "action": "SWAGGER_AUTH",
-        "entity_type": "User",
-        "entity_id": 1,
-        "details": "Authenticated via OAuth2 Password Form"
-      },
-      {
-        "id": 10,
-        "user_id": 3,
-        "action": "LOGIN",
-        "entity_type": "User",
-        "entity_id": 3,
-        "details": "User successfully logged in"
-      },
-      {
-        "id": 11,
-        "user_id": 7,
-        "action": "REGISTER",
-        "entity_type": "User",
-        "entity_id": 7,
-        "details": "User registered with role: Employee"
-      },
-      {
-        "id": 12,
-        "user_id": 7,
-        "action": "LOGIN",
-        "entity_type": "User",
-        "entity_id": 7,
-        "details": "User successfully logged in"
-      },
-      {
-        "id": 13,
-        "user_id": 7,
-        "action": "PASSWORD_CHANGE",
-        "entity_type": "User",
-        "entity_id": 7,
-        "details": "User password changed successfully"
-      },
-      {
-        "id": 14,
-        "user_id": 7,
-        "action": "LOGIN",
-        "entity_type": "User",
-        "entity_id": 7,
-        "details": "User successfully logged in"
+        "details": "Uploaded file 'test_doc.txt' (61 bytes) to decision #1"
       }
     ]
   },
@@ -278,8 +241,192 @@
       "risk_level",
       "feasibility_score"
     ],
-    "total_rows": 0,
-    "rows": []
+    "total_rows": 4,
+    "rows": [
+      {
+        "id": 1,
+        "decision_id": 1,
+        "title": "Option A: PostgreSQL with JSONB",
+        "description": "Relational database with structured tables for users, teams, and JSONB fields for dynamic metadata.",
+        "pros": "ACID compliance, strict FK constraints, high performance JSON indexing, native SQL support.",
+        "cons": "Requires explicit migration scripts for schema alterations.",
+        "estimated_cost": 150.0,
+        "risk_level": "Low",
+        "feasibility_score": 9
+      },
+      {
+        "id": 2,
+        "decision_id": 1,
+        "title": "Option B: MongoDB Enterprise",
+        "description": "NoSQL document database holding decision objects as JSON documents.",
+        "pros": "Schemaless flexibility, rapid document prototyping.",
+        "cons": "Complex multi-table join support, weaker constraint enforcement.",
+        "estimated_cost": 280.0,
+        "risk_level": "Medium",
+        "feasibility_score": 6
+      },
+      {
+        "id": 3,
+        "decision_id": 2,
+        "title": "Option A: Docker & FastAPI Service Containers",
+        "description": "Package backend and web SPA into lightweight Docker containers using Uvicorn ASGI server.",
+        "pros": "Vendor-neutral, rapid local debugging, easy horizontal scaling.",
+        "cons": "Requires container orchestration setup for multi-node clusters.",
+        "estimated_cost": 100.0,
+        "risk_level": "Low",
+        "feasibility_score": 9
+      },
+      {
+        "id": 4,
+        "decision_id": 2,
+        "title": "Option B: AWS Lambda Serverless Functions",
+        "description": "Deconstruct API routes into AWS Lambda functions behind API Gateway.",
+        "pros": "Zero server management, automatic scaling.",
+        "cons": "Vendor lock-in, cold start latency, database connection pooling challenges.",
+        "estimated_cost": 320.0,
+        "risk_level": "High",
+        "feasibility_score": 5
+      }
+    ]
+  },
+  "decision_versions": {
+    "columns": [
+      "id",
+      "decision_id",
+      "version",
+      "title",
+      "problem_statement",
+      "category",
+      "status",
+      "rationale",
+      "change_summary",
+      "created_by_id",
+      "created_at"
+    ],
+    "total_rows": 3,
+    "rows": [
+      {
+        "id": 1,
+        "decision_id": 1,
+        "version": 1,
+        "title": "Database Engine Selection for Replay Engine (Draft)",
+        "problem_statement": "Initial draft comparing PostgreSQL and MongoDB.",
+        "category": "Architecture",
+        "status": "Draft",
+        "rationale": "Initial evaluation phase.",
+        "change_summary": "Initial decision proposal created.",
+        "created_by_id": 2,
+        "created_at": "2026-08-31 13:01:06.029464"
+      },
+      {
+        "id": 2,
+        "decision_id": 1,
+        "version": 2,
+        "title": "Database Engine Selection for Replay Engine",
+        "problem_statement": "Choose between PostgreSQL and MongoDB for high-throughput decision audit logging and version timeline queries.",
+        "category": "Architecture",
+        "status": "Approved",
+        "rationale": "PostgreSQL provides ACID compliance, strong JSONB querying capabilities, and relational integrity for multi-level approval workflows.",
+        "change_summary": "Finalized decision approval after ARB review board meeting.",
+        "created_by_id": 3,
+        "created_at": "2026-08-31 13:01:06.029469"
+      },
+      {
+        "id": 3,
+        "decision_id": 2,
+        "version": 1,
+        "title": "Cloud Infrastructure Deployment Model",
+        "problem_statement": "Evaluate Docker containerization vs AWS ECS vs Serverless functions for deploying application components.",
+        "category": "Infrastructure",
+        "status": "Under Review",
+        "rationale": "Docker containerization ensures portable local testing and simple cloud deployment via Docker Compose or Kubernetes.",
+        "change_summary": "Initial container strategy submission.",
+        "created_by_id": 5,
+        "created_at": "2026-08-31 13:01:06.029472"
+      }
+    ]
+  },
+  "comments": {
+    "columns": [
+      "id",
+      "decision_id",
+      "user_id",
+      "parent_id",
+      "content",
+      "created_at"
+    ],
+    "total_rows": 3,
+    "rows": [
+      {
+        "id": 1,
+        "decision_id": 1,
+        "user_id": 3,
+        "parent_id": null,
+        "content": "The PostgreSQL benchmark tests showed sub-10ms response times for complex version queries. Highly recommend proceeding.",
+        "created_at": "2026-08-31 13:01:06.028653"
+      },
+      {
+        "id": 2,
+        "decision_id": 1,
+        "user_id": 4,
+        "parent_id": null,
+        "content": "Agreed. SQLAlchemy ORM integrations were clean and simplified model definitions.",
+        "created_at": "2026-08-31 13:01:06.028657"
+      },
+      {
+        "id": 3,
+        "decision_id": 2,
+        "user_id": 2,
+        "parent_id": null,
+        "content": "Please ensure the Dockerfile uses multi-stage builds to keep production images compact.",
+        "created_at": "2026-08-31 13:01:06.028658"
+      }
+    ]
+  },
+  "attachments": {
+    "columns": [
+      "id",
+      "decision_id",
+      "uploaded_by_id",
+      "filename",
+      "file_path",
+      "file_size",
+      "content_type",
+      "uploaded_at"
+    ],
+    "total_rows": 3,
+    "rows": [
+      {
+        "id": 1,
+        "decision_id": 1,
+        "uploaded_by_id": 2,
+        "filename": "PostgreSQL_vs_MongoDB_Benchmark.pdf",
+        "file_path": "static/uploads/decision_1_PostgreSQL_vs_MongoDB_Benchmark.pdf",
+        "file_size": 204850,
+        "content_type": "application/pdf",
+        "uploaded_at": "2026-08-31 13:01:06.027154"
+      },
+      {
+        "id": 2,
+        "decision_id": 2,
+        "uploaded_by_id": 5,
+        "filename": "Architecture_Diagram_V2.png",
+        "file_path": "static/uploads/decision_2_Architecture_Diagram_V2.png",
+        "file_size": 512400,
+        "content_type": "image/png",
+        "uploaded_at": "2026-08-31 13:01:06.027158"
+      },
+      {
+        "id": 3,
+        "decision_id": 1,
+        "uploaded_by_id": 2,
+        "filename": "test_doc.txt",
+        "file_path": "C:\\Users\\admin\\OneDrive\\Pictures\\Desktop\\python_proj\\static\\uploads\\decision_1_test_doc.txt",
+        "file_size": 61,
+        "content_type": "text/plain",
+        "uploaded_at": "2026-08-31 13:01:06.068411"
+      }
+    ]
   },
   "approval_workflows": {
     "columns": [

@@ -5,7 +5,9 @@ let state = {
   token: localStorage.getItem('token') || null,
   user: JSON.parse(localStorage.getItem('user')) || null,
   roles: ['Employee', 'Reviewer', 'Manager', 'Administrator'],
-  activeTab: 'wireframe-tab'
+  activeTab: 'decisions-tab',
+  activeDecisionId: null,
+  allDecisions: []
 };
 
 // Initialize App
@@ -13,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   checkAuth();
   loadWireframeSpecs();
+  loadDecisions();
 });
 
 // Setup DOM Event Listeners
@@ -28,6 +31,7 @@ function setupEventListeners() {
       const contentEl = document.getElementById(tabId);
       if (contentEl) contentEl.style.display = 'block';
 
+      if (tabId === 'decisions-tab') loadDecisions();
       if (tabId === 'users-tab') loadUsers();
       if (tabId === 'audit-tab') loadAuditLogs();
       if (tabId === 'dashboard-tab') loadDashboardStats();
@@ -43,7 +47,12 @@ function setupEventListeners() {
 
   // Forms
   document.getElementById('auth-form')?.addEventListener('submit', handleAuthSubmit);
+  document.getElementById('create-decision-form')?.addEventListener('submit', handleCreateDecisionSubmit);
+  document.getElementById('add-alternative-form')?.addEventListener('submit', handleAddAlternativeSubmit);
+  document.getElementById('post-comment-form')?.addEventListener('submit', handlePostCommentSubmit);
+  document.getElementById('upload-file-form')?.addEventListener('submit', handleUploadFileSubmit);
 }
+
 
 // Check Authentication state
 function checkAuth() {
@@ -521,4 +530,460 @@ function showToast(message) {
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
+
+/* ==========================================================================
+   MILESTONE 2 DECISION MANAGEMENT & COLLABORATION FUNCTIONS
+   ========================================================================== */
+
+// Load Decisions List
+async function loadDecisions() {
+  const container = document.getElementById('decisions-container');
+  if (!container) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions`);
+    if (!res.ok) throw new Error('Failed to load decisions');
+    const decisions = await res.json();
+    state.allDecisions = decisions;
+    renderDecisionCards(decisions);
+  } catch (err) {
+    console.error('Error loading decisions:', err);
+    container.innerHTML = `<p style="color:var(--danger)">Error loading decisions: ${err.message}</p>`;
+  }
+}
+
+// Render Decision Cards
+function renderDecisionCards(decisions) {
+  const container = document.getElementById('decisions-container');
+  if (!container) return;
+
+  if (decisions.length === 0) {
+    container.innerHTML = `<div class="glass wireframe-card" style="grid-column: 1/-1; text-align:center; padding:2rem;"><p style="color:var(--text-muted)">No decisions found matching filter criteria.</p></div>`;
+    return;
+  }
+
+  const statusColors = {
+    'Draft': 'background:rgba(148,163,184,0.2); color:#94a3b8;',
+    'Under Review': 'background:rgba(251,191,36,0.2); color:#fbbf24;',
+    'Approved': 'background:rgba(34,197,94,0.2); color:#22c55e;',
+    'Rejected': 'background:rgba(239,68,68,0.2); color:#ef4444;',
+    'Archived': 'background:rgba(100,116,139,0.2); color:#64748b;'
+  };
+
+  container.innerHTML = decisions.map(d => `
+    <div class="glass wireframe-card" style="display:flex; flex-direction:column; justify-content:space-between; cursor:pointer;" onclick="openDecisionDetailModal(${d.id})">
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span class="badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; font-size:0.75rem; padding:2px 8px; border-radius:4px;">${d.category}</span>
+          <div style="display:flex; gap:0.4rem; align-items:center;">
+            <span class="badge" style="${statusColors[d.status] || ''} font-size:0.75rem; padding:2px 8px; border-radius:4px;">${d.status}</span>
+            <span class="badge" style="background:rgba(255,255,255,0.1); color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:4px;">v${d.version}</span>
+          </div>
+        </div>
+
+        <h3 style="font-size:1.1rem; color:var(--text); margin-bottom:0.5rem; line-height:1.3;">${d.title}</h3>
+        <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5; margin-bottom:1rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+          ${d.problem_statement}
+        </p>
+      </div>
+
+      <div style="border-top:1px solid var(--border-color); pt:0.75rem; margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--text-muted);">
+        <div>👤 ${d.creator_name || 'System'}</div>
+        <div style="display:flex; gap:0.75rem;">
+          <span>⚖️ ${d.alternatives ? d.alternatives.length : 0} options</span>
+          <span>💬 ${d.comments_count || 0}</span>
+          <span>📎 ${d.attachments_count || 0}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Filter Decisions locally
+function filterDecisions() {
+  const search = document.getElementById('decision-search-input')?.value.toLowerCase() || '';
+  const category = document.getElementById('decision-category-filter')?.value || 'All';
+  const status = document.getElementById('decision-status-filter')?.value || 'All';
+
+  let filtered = state.allDecisions.filter(d => {
+    const matchSearch = d.title.toLowerCase().includes(search) || d.problem_statement.toLowerCase().includes(search);
+    const matchCategory = category === 'All' || d.category === category;
+    const matchStatus = status === 'All' || d.status === status;
+    return matchSearch && matchCategory && matchStatus;
+  });
+
+  renderDecisionCards(filtered);
+}
+
+// Open / Close Create Decision Modal
+function openCreateDecisionModal(decisionToEdit = null) {
+  if (!state.token) {
+    alert('Please sign in to create or edit decisions.');
+    showAuthModal('login');
+    return;
+  }
+
+  const modal = document.getElementById('create-decision-modal');
+  const titleEl = document.getElementById('decision-modal-title');
+  const editIdEl = document.getElementById('edit-decision-id');
+  const changeGroup = document.getElementById('change-summary-group');
+
+  if (decisionToEdit) {
+    titleEl.innerText = `Edit Decision #${decisionToEdit.id} (Version Bump to v${decisionToEdit.version + 1})`;
+    editIdEl.value = decisionToEdit.id;
+    document.getElementById('decision-title-input').value = decisionToEdit.title;
+    document.getElementById('decision-category-input').value = decisionToEdit.category;
+    document.getElementById('decision-status-input').value = decisionToEdit.status;
+    document.getElementById('decision-problem-input').value = decisionToEdit.problem_statement;
+    document.getElementById('decision-rationale-input').value = decisionToEdit.rationale || '';
+    changeGroup.style.display = 'block';
+  } else {
+    titleEl.innerText = 'Create New Decision';
+    editIdEl.value = '';
+    document.getElementById('create-decision-form').reset();
+    changeGroup.style.display = 'none';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeCreateDecisionModal() {
+  document.getElementById('create-decision-modal').style.display = 'none';
+}
+
+// Submit Create/Edit Decision
+async function handleCreateDecisionSubmit(e) {
+  e.preventDefault();
+  if (!state.token) return;
+
+  const editId = document.getElementById('edit-decision-id').value;
+  const title = document.getElementById('decision-title-input').value;
+  const category = document.getElementById('decision-category-input').value;
+  const status = document.getElementById('decision-status-input').value;
+  const problem_statement = document.getElementById('decision-problem-input').value;
+  const rationale = document.getElementById('decision-rationale-input').value;
+  const change_summary = document.getElementById('decision-change-summary-input').value;
+
+  try {
+    let url = `${API_BASE}/v1/decisions`;
+    let method = 'POST';
+    let body = { title, category, status, problem_statement, rationale };
+
+    if (editId) {
+      url = `${API_BASE}/v1/decisions/${editId}`;
+      method = 'PUT';
+      body.change_summary = change_summary || 'Updated decision metadata';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to save decision');
+
+    closeCreateDecisionModal();
+    showToast(editId ? `Decision updated to Version ${data.version}` : 'Decision created successfully!');
+    loadDecisions();
+
+    if (editId && state.activeDecisionId == editId) {
+      openDecisionDetailModal(editId);
+    }
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// Open Decision Detail Modal Hub
+async function openDecisionDetailModal(decisionId) {
+  state.activeDecisionId = decisionId;
+  const modal = document.getElementById('decision-detail-modal');
+  modal.style.display = 'flex';
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${decisionId}`);
+    if (!res.ok) throw new Error('Decision not found');
+    const d = await res.json();
+
+    document.getElementById('detail-title').innerText = d.title;
+    document.getElementById('detail-category-badge').innerText = d.category;
+    document.getElementById('detail-status-badge').innerText = d.status;
+    document.getElementById('detail-version-badge').innerText = `v${d.version}`;
+    document.getElementById('detail-meta').innerText = `Created by ${d.creator_name || 'System'} | ${new Date(d.created_at).toLocaleDateString()}`;
+    document.getElementById('detail-problem-statement').innerText = d.problem_statement;
+    document.getElementById('detail-rationale').innerText = d.rationale || 'No formal rationale documented yet.';
+
+    window._currentDecision = d;
+    switchDetailSubtab('overview');
+
+  } catch (err) {
+    alert(`Failed to load decision details: ${err.message}`);
+    closeDecisionDetailModal();
+  }
+}
+
+function closeDecisionDetailModal() {
+  document.getElementById('decision-detail-modal').style.display = 'none';
+  state.activeDecisionId = null;
+}
+
+// Switch Subtabs in Decision Detail View
+function switchDetailSubtab(subtabName) {
+  document.querySelectorAll('.detail-subtab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.detail-subtab-content').forEach(c => c.style.display = 'none');
+
+  const activeContent = document.getElementById(`subtab-${subtabName}`);
+  if (activeContent) activeContent.style.display = 'block';
+
+  const dId = state.activeDecisionId;
+  if (subtabName === 'alternatives') loadAlternativesMatrix(dId);
+  if (subtabName === 'discussion') loadComments(dId);
+  if (subtabName === 'files') loadAttachments(dId);
+  if (subtabName === 'versions') loadVersionHistory(dId);
+}
+
+// 1. Alternatives Matrix
+async function loadAlternativesMatrix(decisionId) {
+  const grid = document.getElementById('alternatives-matrix-grid');
+  const bannerText = document.getElementById('matrix-recommendation-text');
+  grid.innerHTML = '<p style="color:var(--text-muted)">Evaluating alternatives matrix...</p>';
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${decisionId}/alternatives/comparison`);
+    const data = await res.json();
+
+    if (data.recommended_option) {
+      bannerText.innerHTML = `Highest Rated Recommendation: <strong>${data.recommended_option}</strong> (${data.recommendation_reason})`;
+    } else {
+      bannerText.innerText = 'No alternative options recorded yet for side-by-side comparison.';
+    }
+
+    if (!data.alternatives || data.alternatives.length === 0) {
+      grid.innerHTML = '<p style="color:var(--text-muted)">No alternatives recorded yet. Click "+ Add Alternative" above to compare options.</p>';
+      return;
+    }
+
+    const riskColors = { 'Low': '#22c55e', 'Medium': '#fbbf24', 'High': '#ef4444' };
+
+    grid.innerHTML = data.alternatives.map((alt, index) => `
+      <div style="background:rgba(255,255,255,0.02); border:1px solid ${alt.title === data.recommended_option ? '#38bdf8' : 'var(--border-color)'}; border-radius:8px; padding:1rem; position:relative;">
+        ${alt.title === data.recommended_option ? '<span style="position:absolute; top:-10px; right:10px; background:#38bdf8; color:#000; font-weight:700; font-size:0.7rem; padding:2px 8px; border-radius:10px;">★ RECOMMENDED</span>' : ''}
+        <h4 style="margin-bottom:0.4rem; color:var(--text);">${alt.title}</h4>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">${alt.description || 'No description'}</p>
+
+        <div style="font-size:0.8rem; line-height:1.5; margin-bottom:0.75rem;">
+          <div style="color:#22c55e; margin-bottom:0.25rem;"><strong>Pros:</strong> ${alt.pros || 'N/A'}</div>
+          <div style="color:#ef4444;"><strong>Cons:</strong> ${alt.cons || 'N/A'}</div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; pt:0.5rem; border-top:1px dashed var(--border-color); font-size:0.8rem;">
+          <div>Cost: <strong>$${alt.estimated_cost}</strong></div>
+          <div>Risk: <strong style="color:${riskColors[alt.risk_level] || '#fff'}">${alt.risk_level}</strong></div>
+          <div>Feasibility: <strong>${alt.feasibility_score}/10</strong></div>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    grid.innerHTML = `<p style="color:var(--danger)">Error loading comparison matrix: ${err.message}</p>`;
+  }
+}
+
+function toggleAddAlternativeForm() {
+  const card = document.getElementById('add-alternative-card');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+
+async function handleAddAlternativeSubmit(e) {
+  e.preventDefault();
+  if (!state.token || !state.activeDecisionId) return;
+
+  const title = document.getElementById('alt-title').value;
+  const description = document.getElementById('alt-desc').value;
+  const pros = document.getElementById('alt-pros').value;
+  const cons = document.getElementById('alt-cons').value;
+  const estimated_cost = parseFloat(document.getElementById('alt-cost').value) || 0.0;
+  const risk_level = document.getElementById('alt-risk').value;
+  const feasibility_score = parseInt(document.getElementById('alt-score').value) || 5;
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${state.activeDecisionId}/alternatives`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ title, description, pros, cons, estimated_cost, risk_level, feasibility_score })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to add alternative');
+
+    toggleAddAlternativeForm();
+    document.getElementById('add-alternative-form').reset();
+    showToast('Alternative option recorded!');
+    loadAlternativesMatrix(state.activeDecisionId);
+
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// 2. Discussions Module
+async function loadComments(decisionId) {
+  const feed = document.getElementById('comments-feed');
+  feed.innerHTML = '<p style="color:var(--text-muted)">Loading discussion threads...</p>';
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${decisionId}/comments`);
+    const comments = await res.json();
+
+    if (comments.length === 0) {
+      feed.innerHTML = '<p style="color:var(--text-muted)">No comments posted yet. Be the first to start the discussion!</p>';
+      return;
+    }
+
+    feed.innerHTML = comments.map(c => `
+      <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:8px; padding:0.85rem 1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <strong>${c.author_name || 'User'}</strong>
+            <span class="role-pill role-${c.author_role || 'Employee'}" style="font-size:0.7rem; padding:1px 6px;">${c.author_role || 'User'}</span>
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.created_at).toLocaleString()}</span>
+        </div>
+        <p style="font-size:0.9rem; color:var(--text); line-height:1.5; white-space:pre-wrap; margin:0;">${c.content}</p>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    feed.innerHTML = `<p style="color:var(--danger)">Error loading comments: ${err.message}</p>`;
+  }
+}
+
+async function handlePostCommentSubmit(e) {
+  e.preventDefault();
+  if (!state.token || !state.activeDecisionId) return;
+
+  const content = document.getElementById('comment-input').value;
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${state.activeDecisionId}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({ content })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to post comment');
+
+    document.getElementById('comment-input').value = '';
+    showToast('Comment posted');
+    loadComments(state.activeDecisionId);
+
+  } catch (err) {
+    alert(`Error posting comment: ${err.message}`);
+  }
+}
+
+// 3. File Attachments Engine
+async function loadAttachments(decisionId) {
+  const list = document.getElementById('attachments-list');
+  list.innerHTML = '<p style="color:var(--text-muted)">Loading file attachments...</p>';
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${decisionId}/attachments`);
+    const attachments = await res.json();
+
+    if (attachments.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-muted)">No files uploaded yet for this decision.</p>';
+      return;
+    }
+
+    list.innerHTML = attachments.map(att => `
+      <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:6px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong>📄 ${att.filename}</strong>
+          <span style="font-size:0.75rem; color:var(--text-muted); margin-left:0.5rem;">(${(att.file_size / 1024).toFixed(1)} KB | Uploaded by ${att.uploader_name || 'User'})</span>
+        </div>
+        <a href="${API_BASE}/v1/attachments/${att.id}/download" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">⬇️ Download</a>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    list.innerHTML = `<p style="color:var(--danger)">Error loading attachments: ${err.message}</p>`;
+  }
+}
+
+async function handleUploadFileSubmit(e) {
+  e.preventDefault();
+  if (!state.token || !state.activeDecisionId) return;
+
+  const fileInput = document.getElementById('attachment-file-input');
+  if (!fileInput.files || fileInput.files.length === 0) return;
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${state.activeDecisionId}/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'File upload failed');
+
+    fileInput.value = '';
+    showToast(`Uploaded file ${data.filename}`);
+    loadAttachments(state.activeDecisionId);
+
+  } catch (err) {
+    alert(`File upload error: ${err.message}`);
+  }
+}
+
+// 4. Version History Inspection Timeline
+async function loadVersionHistory(decisionId) {
+  const timeline = document.getElementById('version-history-timeline');
+  timeline.innerHTML = '<p style="color:var(--text-muted)">Loading version snapshots...</p>';
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/decisions/${decisionId}/versions`);
+    const versions = await res.json();
+
+    if (versions.length === 0) {
+      timeline.innerHTML = '<p style="color:var(--text-muted)">No revision history snapshots found.</p>';
+      return;
+    }
+
+    timeline.innerHTML = versions.map(v => `
+      <div style="background:rgba(255,255,255,0.02); border-left:3px solid #38bdf8; border-radius:0 8px 8px 0; padding:0.85rem 1rem; border-top:1px solid var(--border-color); border-right:1px solid var(--border-color); border-bottom:1px solid var(--border-color);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <div>
+            <span class="badge" style="background:#38bdf8; color:#000; font-weight:700; font-size:0.75rem; padding:2px 8px; border-radius:4px;">Version ${v.version}</span>
+            <strong style="margin-left:0.5rem; font-size:0.95rem;">${v.title}</strong>
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${new Date(v.created_at).toLocaleString()} by ${v.created_by_name || 'System'}</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.4rem;"><strong>Change Summary:</strong> ${v.change_summary || 'N/A'}</p>
+        <p style="font-size:0.85rem; color:var(--text); background:rgba(0,0,0,0.2); padding:0.5rem; border-radius:4px; margin:0;">${v.problem_statement}</p>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    timeline.innerHTML = `<p style="color:var(--danger)">Error loading version history: ${err.message}</p>`;
+  }
+}
+
 

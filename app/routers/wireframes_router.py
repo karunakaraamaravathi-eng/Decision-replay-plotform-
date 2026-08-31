@@ -34,7 +34,7 @@ def get_requirements():
             },
             {
                 "name": "Milestone 2 (Week 3-4)",
-                "status": "UPCOMING",
+                "status": "COMPLETED",
                 "tasks": [
                     "Decision management module",
                     "Alternative comparison matrix",
@@ -81,11 +81,23 @@ def get_db_schema():
             },
             {
                 "name": "decisions",
-                "columns": ["id (PK)", "title", "problem_statement", "category", "status", "creator_id (FK)", "team_id (FK)", "version", "created_at", "updated_at"]
+                "columns": ["id (PK)", "title", "problem_statement", "category", "status", "rationale", "creator_id (FK)", "team_id (FK)", "version", "created_at", "updated_at"]
             },
             {
                 "name": "alternatives",
                 "columns": ["id (PK)", "decision_id (FK)", "title", "description", "pros", "cons", "estimated_cost", "risk_level", "feasibility_score"]
+            },
+            {
+                "name": "decision_versions",
+                "columns": ["id (PK)", "decision_id (FK)", "version", "title", "problem_statement", "category", "status", "rationale", "change_summary", "created_by_id (FK)", "created_at"]
+            },
+            {
+                "name": "comments",
+                "columns": ["id (PK)", "decision_id (FK)", "user_id (FK)", "parent_id (FK)", "content", "created_at"]
+            },
+            {
+                "name": "attachments",
+                "columns": ["id (PK)", "decision_id (FK)", "uploaded_by_id (FK)", "filename", "file_path", "file_size", "content_type", "uploaded_at"]
             },
             {
                 "name": "approval_workflows",
