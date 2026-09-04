@@ -1,3 +1,0 @@
-@echo off
-echo [*] Running Backend Test Suites (Pytest)...
-pytest -v
