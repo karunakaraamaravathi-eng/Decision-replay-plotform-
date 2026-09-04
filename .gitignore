@@ -1,0 +1,36 @@
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/venv/
+venv/
+ENV/
+env/
+*.sqlite3
+*.db
+backend/decision_replay.db
+decision_replay.db
+
+# Node & Frontend Dependencies
+frontend/node_modules/
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# Environment Variables
+.env
+backend/.env
+frontend/.env
+
+# Local standalone preview
+app_standalone.html
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
