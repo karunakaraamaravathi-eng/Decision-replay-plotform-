@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Database Service (PostgreSQL 16)
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: decision_replay_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-expert}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-expert_secret_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-decision_replay}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-expert} -d ${POSTGRES_DB:-decision_replay}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - decision_network
+
+  # ----------------------------------------------------------------------------
+  # Backend API Service (FastAPI + Uvicorn)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: decision_replay_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-expert}:${POSTGRES_PASSWORD:-expert_secret_pass}@db:5432/${POSTGRES_DB:-decision_replay}
+      SECRET_KEY: ${SECRET_KEY:-production-secure-decision-replay-enterprise-key-99182}
+      UPLOAD_DIR: /app/uploads
+      ACCESS_TOKEN_EXPIRE_MINUTES: 10080
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - decision_network
+
+  # ----------------------------------------------------------------------------
+  # Frontend Client Service (React 18 + Vite + Nginx Reverse Proxy)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+    container_name: decision_replay_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - decision_network
+
+# ------------------------------------------------------------------------------
+# Persistent Storage Volumes
+# ------------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+# ------------------------------------------------------------------------------
+# Bridge Network
+# ------------------------------------------------------------------------------
+networks:
+  decision_network:
+    driver: bridge

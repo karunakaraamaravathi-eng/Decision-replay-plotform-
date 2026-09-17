@@ -9,6 +9,8 @@ import { DashboardPage as Dashboard } from './pages/DashboardPage';
 import { DecisionsPage } from './pages/DecisionsPage';
 import { DecisionDetailPage } from './pages/DecisionDetailPage';
 import { TeamsPage } from './pages/TeamsPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { TerminalPage } from './pages/TerminalPage';
 import { AdminUsersPage as AdminUsers } from './pages/AdminUsersPage';
 import { Unauthorized } from './pages/Unauthorized';
 
@@ -57,6 +59,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <TeamsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/terminal"
+                element={
+                  <ProtectedRoute>
+                    <TerminalPage />
                   </ProtectedRoute>
                 }
               />

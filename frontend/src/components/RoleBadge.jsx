@@ -41,3 +41,5 @@ export const RoleBadge = ({ role, size = 'md' }) => {
     </span>
   );
 };
+
+export default RoleBadge;

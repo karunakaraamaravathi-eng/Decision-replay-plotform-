@@ -33,8 +33,15 @@ import {
   Sparkles,
   Layers,
   Compass,
-  CornerDownRight
+  CornerDownRight,
+  ShieldCheck,
+  FileSpreadsheet,
+  Send,
+  AlertTriangle,
+  FileBarChart
 } from 'lucide-react';
+import { exportSingleDecisionReport } from '../api/reports';
+import ApprovalActionModal from '../components/ApprovalActionModal';
 
 export const DecisionDetailPage = () => {
   const { id } = useParams();
@@ -44,7 +51,12 @@ export const DecisionDetailPage = () => {
   const [decision, setDecision] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('alternatives'); // 'alternatives', 'discussions', 'versions', 'attachments'
+  const [activeTab, setActiveTab] = useState('workflow'); // 'workflow', 'alternatives', 'discussions', 'versions', 'attachments'
+
+  // Milestone 3 Workflow Modal & Export State
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [approvalModalAction, setApprovalModalAction] = useState('approve');
+  const [exportingFormat, setExportingFormat] = useState(null);
 
   // Edit Decision Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -258,6 +270,19 @@ export const DecisionDetailPage = () => {
     }
   };
 
+  // Handle Single Decision Export
+  const handleExportSingle = async (format) => {
+    setExportingFormat(format);
+    try {
+      await exportSingleDecisionReport(decision.id, format);
+    } catch (err) {
+      console.error('Failed to export decision:', err);
+      alert('Failed to export report.');
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32 space-x-3 text-slate-400">
@@ -302,7 +327,28 @@ export const DecisionDetailPage = () => {
           <span>Back to Decisions Knowledge Hub</span>
         </Link>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2.5">
+          {/* Milestone 3 Quick Export Buttons */}
+          <button
+            onClick={() => handleExportSingle('pdf')}
+            disabled={exportingFormat !== null}
+            className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 text-xs font-bold transition-colors border border-rose-500/30 disabled:opacity-50"
+            title="Export Decision Dossier to PDF"
+          >
+            {exportingFormat === 'pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">Export PDF</span>
+          </button>
+
+          <button
+            onClick={() => handleExportSingle('excel')}
+            disabled={exportingFormat !== null}
+            className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-xs font-bold transition-colors border border-emerald-500/30 disabled:opacity-50"
+            title="Export Decision Dossier to Excel"
+          >
+            {exportingFormat === 'excel' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">Export Excel</span>
+          </button>
+
           {canEdit && (
             <button
               onClick={() => setIsEditOpen(true)}
@@ -380,6 +426,18 @@ export const DecisionDetailPage = () => {
       {/* Interactive Tabs Navigation */}
       <div className="flex items-center space-x-2 border-b border-slate-800 pb-2 overflow-x-auto">
         <button
+          onClick={() => setActiveTab('workflow')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shrink-0 ${
+            activeTab === 'workflow'
+              ? 'bg-emerald-600/10 text-emerald-400 border border-emerald-500/20 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span>Approval Workflow ({decision.approvals?.length || 0})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('alternatives')}
           className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shrink-0 ${
             activeTab === 'alternatives'
@@ -427,6 +485,288 @@ export const DecisionDetailPage = () => {
           <span>Attachments ({decision.attachments?.length || 0})</span>
         </button>
       </div>
+
+      {/* TAB: APPROVAL WORKFLOW (Milestone 3) */}
+      {activeTab === 'workflow' && (
+        <div className="space-y-8">
+          
+          {/* Multi-Level Workflow Lifecycle Stepper */}
+          <div className="glass-card rounded-3xl p-6 sm:p-8 border border-slate-800 space-y-6">
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">
+                Governance & Lifecycle Engine
+              </span>
+              <h2 className="text-lg font-bold text-white mt-1">Multi-Level Approval Pipeline</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                State machine transitions enforcing Level 1 Technical Verification by Reviewers, followed by Level 2 Executive Governance by Managers.
+              </p>
+            </div>
+
+            {/* Step Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-2">
+              {/* Step 1: Draft */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                decision.status === 'Draft' 
+                  ? 'bg-blue-950/30 border-blue-500/50 shadow-md shadow-blue-500/10' 
+                  : 'bg-slate-900/40 border-slate-800'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    decision.status !== 'Draft' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-600 text-white'
+                  }`}>
+                    {decision.status !== 'Draft' ? <Check className="w-3.5 h-3.5" /> : '1'}
+                  </span>
+                  <span className="text-xs font-bold text-white">Formulation</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2">Problem formulation & alternatives recorded.</p>
+              </div>
+
+              {/* Step 2: Level 1 Review */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                decision.status === 'Under Review' && (decision.current_approval_level === 1 || !decision.current_approval_level)
+                  ? 'bg-amber-950/30 border-amber-500/50 shadow-md shadow-amber-500/10'
+                  : decision.approvals?.some(a => a.level === 1 && a.status === 'APPROVED')
+                  ? 'bg-emerald-950/20 border-emerald-500/30'
+                  : 'bg-slate-900/40 border-slate-800'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    decision.approvals?.some(a => a.level === 1 && a.status === 'APPROVED')
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : decision.status === 'Under Review' && (decision.current_approval_level === 1 || !decision.current_approval_level)
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {decision.approvals?.some(a => a.level === 1 && a.status === 'APPROVED') ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : '2'}
+                  </span>
+                  <span className="text-xs font-bold text-white">Level 1 Review</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2">Technical feasibility verification by Senior Reviewer.</p>
+              </div>
+
+              {/* Step 3: Level 2 Approval */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                decision.status === 'Under Review' && decision.current_approval_level === 2
+                  ? 'bg-amber-950/30 border-amber-500/50 shadow-md shadow-amber-500/10'
+                  : decision.approvals?.some(a => a.level === 2 && a.status === 'APPROVED')
+                  ? 'bg-emerald-950/20 border-emerald-500/30'
+                  : 'bg-slate-900/40 border-slate-800'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    decision.approvals?.some(a => a.level === 2 && a.status === 'APPROVED')
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : decision.status === 'Under Review' && decision.current_approval_level === 2
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {decision.approvals?.some(a => a.level === 2 && a.status === 'APPROVED') ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : '3'}
+                  </span>
+                  <span className="text-xs font-bold text-white">Level 2 Approval</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2">Budget, capacity, and risk sign-off by Manager.</p>
+              </div>
+
+              {/* Step 4: Final Decision */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                decision.status === 'Approved'
+                  ? 'bg-emerald-950/30 border-emerald-500/50 shadow-md shadow-emerald-500/10'
+                  : decision.status === 'Rejected'
+                  ? 'bg-rose-950/30 border-rose-500/50 shadow-md shadow-rose-500/10'
+                  : 'bg-slate-900/40 border-slate-800'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    decision.status === 'Approved'
+                      ? 'bg-emerald-500 text-slate-950'
+                      : decision.status === 'Rejected'
+                      ? 'bg-rose-500 text-white'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {decision.status === 'Approved' ? <Check className="w-3.5 h-3.5" /> : (decision.status === 'Rejected' ? <X className="w-3.5 h-3.5" /> : '4')}
+                  </span>
+                  <span className="text-xs font-bold text-white">Final Outcome</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2">
+                  {decision.status === 'Approved' ? 'Organizational adoption granted.' : (decision.status === 'Rejected' ? 'Returned with feedback.' : 'Pending lifecycle completion.')}
+                </p>
+              </div>
+            </div>
+
+            {/* Interactive Workflow Actions Card */}
+            <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Active Stage Status</span>
+                <div className="flex items-center space-x-2.5 mt-1">
+                  <DecisionStatusBadge status={decision.status} size="md" />
+                  {decision.status === 'Under Review' && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      Level {decision.current_approval_level || 1} Verification Active
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3">
+                {(decision.status === 'Draft' || decision.status === 'Rejected') && (
+                  <button
+                    onClick={() => {
+                      setApprovalModalAction('submit');
+                      setIsApprovalModalOpen(true);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center space-x-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>Submit Decision for Review</span>
+                  </button>
+                )}
+
+                {decision.status === 'Under Review' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setApprovalModalAction('approve');
+                        setIsApprovalModalOpen(true);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center space-x-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Approve (Level {decision.current_approval_level || 1})</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setApprovalModalAction('reject');
+                        setIsApprovalModalOpen(true);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 text-xs font-bold transition-all border border-rose-500/30 flex items-center space-x-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>Reject Decision</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setApprovalModalAction('escalate');
+                        setIsApprovalModalOpen(true);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-xs font-bold transition-all border border-amber-500/30 flex items-center space-x-2"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>Escalate</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Active Approvals Table */}
+          <div className="glass-card rounded-3xl p-6 border border-slate-800 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center space-x-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Multi-Level Approvers & Reviewer Records</span>
+            </h3>
+
+            {!decision.approvals || decision.approvals.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-500">
+                No approval records created yet. Submit this decision for review to initiate Level 1 evaluation.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider">
+                      <th className="py-3 px-4">Level</th>
+                      <th className="py-3 px-4">Approver</th>
+                      <th className="py-3 px-4">Role</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Reviewer Comments / Rationale</th>
+                      <th className="py-3 px-4">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {decision.approvals.map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-white">Level {app.level}</td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-200">
+                          {app.approver?.full_name || 'Unassigned'}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          {app.approver?.role && <RoleBadge role={app.approver.role} size="sm" />}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            app.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            app.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                            'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-300 max-w-sm">
+                          {app.comments || <span className="text-slate-500 italic">No notes recorded</span>}
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-500">
+                          {new Date(app.updated_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Chronological Approval History Audit Trail */}
+          <div className="glass-card rounded-3xl p-6 border border-slate-800 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center space-x-2">
+              <History className="w-4 h-4 text-blue-400" />
+              <span>Historical Approval Audit Trail</span>
+            </h3>
+
+            {!decision.approval_history || decision.approval_history.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-500">
+                No historical transition trail recorded yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {decision.approval_history.map((h) => (
+                  <div key={h.id} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          h.action === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400' :
+                          h.action === 'REJECTED' ? 'bg-rose-500/20 text-rose-400' :
+                          h.action === 'ESCALATED' ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {h.action}
+                        </span>
+                        <span className="font-bold text-slate-200">Level {h.level}</span>
+                        <span className="text-slate-400">• By {h.approver?.full_name || 'System / Author'}</span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] mt-0.5">
+                        {h.comments || 'Transition recorded.'}
+                      </p>
+                    </div>
+
+                    <span className="text-[10px] text-slate-500 shrink-0">
+                      {new Date(h.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
 
       {/* TAB 1: ALTERNATIVES ANALYSIS */}
       {activeTab === 'alternatives' && (
@@ -1212,6 +1552,18 @@ export const DecisionDetailPage = () => {
           </div>
         </div>
       )}
+
+      {/* APPROVAL ACTION MODAL (Milestone 3) */}
+      <ApprovalActionModal
+        isOpen={isApprovalModalOpen}
+        onClose={() => setIsApprovalModalOpen(false)}
+        decision={decision}
+        currentLevel={decision?.current_approval_level || 1}
+        actionType={approvalModalAction}
+        onSuccess={async () => {
+          await fetchDecisionDetails();
+        }}
+      />
 
     </div>
   );

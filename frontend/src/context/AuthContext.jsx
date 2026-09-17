@@ -5,8 +5,14 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const cachedUser = localStorage.getItem('user');
-    return cachedUser ? JSON.parse(cachedUser) : null;
+    try {
+      const cachedUser = localStorage.getItem('user');
+      return cachedUser && cachedUser !== 'undefined' ? JSON.parse(cachedUser) : null;
+    } catch (e) {
+      console.error('Failed to parse cached user:', e);
+      localStorage.removeItem('user');
+      return null;
+    }
   });
   const [token, setToken] = useState(() => localStorage.getItem('access_token'));
   const [loading, setLoading] = useState(true);
@@ -69,6 +75,10 @@ export const AuthProvider = ({ children }) => {
     return allowedRoles.includes(user.role);
   };
 
+  const isAdmin = user?.role === 'ADMINISTRATOR';
+  const isManager = user?.role === 'MANAGER' || user?.role === 'ADMINISTRATOR';
+  const isReviewer = user?.role === 'REVIEWER' || user?.role === 'MANAGER' || user?.role === 'ADMINISTRATOR';
+
   return (
     <AuthContext.Provider
       value={{
@@ -79,6 +89,10 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         refreshUser,
+        refreshProfile: refreshUser,
+        isAdmin,
+        isManager,
+        isReviewer,
         hasRole,
         isAuthenticated: !!user,
       }}

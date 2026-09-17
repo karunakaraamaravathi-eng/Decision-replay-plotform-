@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { RoleBadge } from './RoleBadge';
+import { NotificationBell } from './NotificationBell';
 import { 
   ShieldCheck, 
   Users, 
@@ -9,7 +10,9 @@ import {
   LogOut, 
   Sparkles,
   Layers,
-  Building2
+  Building2,
+  FileBarChart,
+  Terminal
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -38,8 +41,8 @@ export const Navbar = () => {
                 <span className="text-base font-bold text-white tracking-tight">
                   Decision<span className="text-brand-400">Replay</span>
                 </span>
-                <span className="hidden sm:inline-block ml-2 text-[10px] uppercase font-semibold tracking-wider text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/50">
-                  M1 Platform
+                <span className="hidden sm:inline-block ml-2 text-[10px] uppercase font-semibold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  Milestone 1, 2 & 3
                 </span>
               </div>
             </Link>
@@ -72,6 +75,18 @@ export const Navbar = () => {
                 </Link>
 
                 <Link
+                  to="/reports"
+                  className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    isActive('/reports')
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+                >
+                  <FileBarChart className="h-4 w-4 text-emerald-400" />
+                  Reports & Exports
+                </Link>
+
+                <Link
                   to="/teams"
                   className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                     isActive('/teams')
@@ -81,6 +96,19 @@ export const Navbar = () => {
                 >
                   <Building2 className="h-4 w-4" />
                   Teams
+                </Link>
+
+                <Link
+                  to="/terminal"
+                  className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    isActive('/terminal')
+                      ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-500/30'
+                      : 'text-slate-400 hover:text-emerald-300 hover:bg-slate-900'
+                  }`}
+                  title="Open Interactive Governance CLI Terminal"
+                >
+                  <Terminal className="h-4 w-4 text-emerald-400" />
+                  Terminal CLI
                 </Link>
 
                 {user.role === 'ADMINISTRATOR' && (
@@ -102,7 +130,10 @@ export const Navbar = () => {
 
           {/* User Profile & Actions */}
           {user ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              {/* Notification Center */}
+              <NotificationBell />
+
               <div className="hidden sm:flex flex-col items-end">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-slate-200">{user.full_name}</span>
