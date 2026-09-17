@@ -11,6 +11,7 @@ import {
   getAdminDashboard 
 } from '../api/dashboards';
 import { exportDecisionsReport } from '../api/reports';
+import PieChart from '../components/PieChart';
 import {
   User,
   Mail,
@@ -143,6 +144,57 @@ export const DashboardPage = () => {
     Approved: 0,
     Rejected: 0
   };
+
+  const CATEGORY_COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#f97316', '#a855f7'];
+
+  // Employee Charts
+  const employeeStatusChartData = [
+    { label: 'Approved', value: empCounts.Approved || 0, color: '#10b981' },
+    { label: 'Under Review', value: empCounts['Under Review'] || 0, color: '#f59e0b' },
+    { label: 'Draft', value: empCounts.Draft || 0, color: '#64748b' },
+    { label: 'Rejected', value: empCounts.Rejected || 0, color: '#f43f5e' },
+  ];
+
+  const empCategories = {};
+  (employeeData?.my_decisions || []).forEach((d) => {
+    const c = d.category || 'General';
+    empCategories[c] = (empCategories[c] || 0) + 1;
+  });
+  const employeeCategoryChartData = Object.entries(empCategories).map(([cat, val], idx) => ({
+    label: cat,
+    value: val,
+    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+  }));
+
+  // Manager Charts
+  const managerStatusChartData = [
+    { label: 'Approved', value: managerData?.team_overview?.approved_count || 0, color: '#10b981' },
+    { label: 'Under Review', value: managerData?.team_overview?.pending_count || 0, color: '#f59e0b' },
+    { label: 'Draft', value: managerData?.team_overview?.draft_count || 0, color: '#64748b' },
+    { label: 'Rejected', value: managerData?.team_overview?.rejected_count || 0, color: '#f43f5e' },
+  ];
+
+  const managerCategoryChartData = Object.entries(managerData?.decision_statistics?.by_category || {}).map(([cat, val], idx) => ({
+    label: cat,
+    value: val,
+    color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+  }));
+
+  // Admin Charts
+  const adminStatusChartData = [
+    { label: 'Approved', value: adminData?.active_decisions_metrics?.approved || 0, color: '#10b981' },
+    { label: 'Under Review', value: adminData?.active_decisions_metrics?.under_review || 0, color: '#f59e0b' },
+    { label: 'Draft', value: adminData?.active_decisions_metrics?.draft || 0, color: '#64748b' },
+    { label: 'Rejected', value: adminData?.active_decisions_metrics?.rejected || 0, color: '#f43f5e' },
+    { label: 'Archived', value: adminData?.active_decisions_metrics?.archived || 0, color: '#a855f7' },
+  ];
+
+  const adminRoleChartData = [
+    { label: 'Staff Engineers', value: adminData?.total_users_by_role?.EMPLOYEE || 0, color: '#3b82f6' },
+    { label: 'Senior Reviewers', value: adminData?.total_users_by_role?.REVIEWER || 0, color: '#8b5cf6' },
+    { label: 'Engineering Managers', value: adminData?.total_users_by_role?.MANAGER || 0, color: '#f59e0b' },
+    { label: 'System Admins', value: adminData?.total_users_by_role?.ADMINISTRATOR || 0, color: '#ec4899' },
+  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -281,6 +333,20 @@ export const DashboardPage = () => {
                 <XCircle className="w-6 h-6 text-rose-400 opacity-70" />
               </div>
             </div>
+          </div>
+
+          {/* Visual Analytics Pie Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <PieChart
+              title="My Formulations by Lifecycle Status"
+              subtitle="Real-time breakdown of your submitted architectural proposals"
+              data={employeeStatusChartData}
+            />
+            <PieChart
+              title="Formulations by Technical Domain"
+              subtitle="Distribution of decisions across architecture categories"
+              data={employeeCategoryChartData.length > 0 ? employeeCategoryChartData : [{ label: 'Cloud & Infrastructure', value: 1, color: '#3b82f6' }]}
+            />
           </div>
 
           {/* Main Workspace 2-Column Grid */}
@@ -548,6 +614,20 @@ export const DashboardPage = () => {
             </div>
           </div>
 
+          {/* Visual Analytics Pie Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <PieChart
+              title="Team Decision Approval Breakdown"
+              subtitle="Status proportions across all team architectural initiatives"
+              data={managerStatusChartData}
+            />
+            <PieChart
+              title="Architecture Domain Allocation"
+              subtitle="Volume distribution by technical discipline"
+              data={managerCategoryChartData.length > 0 ? managerCategoryChartData : [{ label: 'Cloud Infrastructure', value: 2, color: '#3b82f6' }]}
+            />
+          </div>
+
           {/* Pending Approvals Action Queue */}
           <div className="glass-card rounded-3xl p-6 border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
@@ -739,6 +819,20 @@ export const DashboardPage = () => {
                 <ShieldCheck className="w-6 h-6 text-amber-400 opacity-70" />
               </div>
             </div>
+          </div>
+
+          {/* Visual Analytics Pie Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <PieChart
+              title="Enterprise Decision Portfolio Status"
+              subtitle="Global lifecycle status breakdown across all organizations"
+              data={adminStatusChartData}
+            />
+            <PieChart
+              title="User & Governance Role Distribution"
+              subtitle="Active user allocation across RBAC security tiers"
+              data={adminRoleChartData}
+            />
           </div>
 
           {/* User Distribution & Categories Grid */}

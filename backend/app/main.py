@@ -56,14 +56,68 @@ def seed_initial_data(db: Session):
             name="Executive Governance & Risk",
             description="Strategic decisions, compliance, and enterprise oversight"
         )
-        db.add_all([engineering_team, product_team, governance_team])
+        core_arch_team = Team(
+            name="Core Architecture & Engineering Leadership",
+            description="Cross-functional technical leadership directing enterprise system architecture, cloud platforms, infrastructure resilience, and security compliance."
+        )
+        db.add_all([engineering_team, product_team, governance_team, core_arch_team])
         db.commit()
         db.refresh(engineering_team)
         db.refresh(product_team)
         db.refresh(governance_team)
+        db.refresh(core_arch_team)
 
         # Seed Users for every Role (supporting both @expert.com and @decisionreplay.com)
         default_users = [
+            # Core Engineering Leadership Team (Karuna, Karan, Hasan, Gopi, Sree, Madhu)
+            User(
+                email="karuna@expert.com",
+                hashed_password=get_password_hash("Password123!"),
+                full_name="Karunakara Amaravathi",
+                role=RoleEnum.EMPLOYEE,
+                team_id=core_arch_team.id,
+                is_active=True
+            ),
+            User(
+                email="karan@expert.com",
+                hashed_password=get_password_hash("Password123!"),
+                full_name="Karan Saini",
+                role=RoleEnum.REVIEWER,
+                team_id=core_arch_team.id,
+                is_active=True
+            ),
+            User(
+                email="hasan@expert.com",
+                hashed_password=get_password_hash("Password123!"),
+                full_name="Mohd Hasan Rizvi",
+                role=RoleEnum.REVIEWER,
+                team_id=core_arch_team.id,
+                is_active=True
+            ),
+            User(
+                email="gopi@expert.com",
+                hashed_password=get_password_hash("Password123!"),
+                full_name="Gopinath Venkat",
+                role=RoleEnum.MANAGER,
+                team_id=core_arch_team.id,
+                is_active=True
+            ),
+            User(
+                email="sree@expert.com",
+                hashed_password=get_password_hash("Password123!"),
+                full_name="Sreeram Krishnamurthy",
+                role=RoleEnum.EMPLOYEE,
+                team_id=core_arch_team.id,
+                is_active=True
+            ),
+            User(
+                email="madhu@expert.com",
+                hashed_password=get_password_hash("Password123!"),
+                full_name="Madhusudhan Rao",
+                role=RoleEnum.ADMINISTRATOR,
+                team_id=core_arch_team.id,
+                is_active=True
+            ),
             # Expert accounts (Used in Quick Login & Verification Script)
             User(
                 email="admin@expert.com",
@@ -94,7 +148,7 @@ def seed_initial_data(db: Session):
                 hashed_password=get_password_hash("EmployeePassword123!"),
                 full_name="Karunakara.A (Staff Engineer)",
                 role=RoleEnum.EMPLOYEE,
-                team_id=engineering_team.id,
+                team_id=core_arch_team.id,
                 is_active=True
             ),
             # DecisionReplay accounts

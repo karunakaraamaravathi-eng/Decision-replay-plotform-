@@ -22,9 +22,19 @@ class TeamCreate(TeamBase):
     pass
 
 
+class TeamMemberSummary(BaseModel):
+    id: int
+    email: EmailStr
+    full_name: str
+    role: RoleEnum
+    is_active: bool = True
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TeamResponse(TeamBase):
     id: int
     created_at: datetime
+    users: Optional[List[TeamMemberSummary]] = None
     model_config = ConfigDict(from_attributes=True)
 
 

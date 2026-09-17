@@ -141,34 +141,56 @@ export const LoginPage = () => {
 
         {/* Quick Demo Accounts */}
         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
-          <div className="flex items-center space-x-2 text-xs font-semibold text-slate-300 uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4 text-blue-400" />
-            <span>One-Click Quick Login Accounts:</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4 text-blue-400" />
+              <span>Core Team Quick Logins (1-Click):</span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-medium">Auto-fill & Login</span>
           </div>
+
           <div className="grid grid-cols-2 gap-2 text-xs">
             <button
-              onClick={() => handleQuickLogin('admin@expert.com', 'AdminPassword123!')}
-              className="px-3 py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 text-left transition-colors font-medium"
+              onClick={() => handleQuickLogin('karuna@expert.com', 'Password123!')}
+              className="px-3 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 text-left transition-colors font-medium flex flex-col"
             >
-              👑 Administrator
+              <span className="font-bold">⚡ Karuna</span>
+              <span className="text-[10px] text-slate-400">Staff Systems Architect</span>
             </button>
             <button
-              onClick={() => handleQuickLogin('manager@expert.com', 'ManagerPassword123!')}
-              className="px-3 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 text-left transition-colors font-medium"
+              onClick={() => handleQuickLogin('karan@expert.com', 'Password123!')}
+              className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-left transition-colors font-medium flex flex-col"
             >
-              💼 Manager
+              <span className="font-bold">🔍 Karan</span>
+              <span className="text-[10px] text-slate-400">Lead Cloud Architect</span>
             </button>
             <button
-              onClick={() => handleQuickLogin('reviewer@expert.com', 'ReviewerPassword123!')}
-              className="px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-left transition-colors font-medium"
+              onClick={() => handleQuickLogin('hasan@expert.com', 'Password123!')}
+              className="px-3 py-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/20 text-left transition-colors font-medium flex flex-col"
             >
-              🔍 Reviewer
+              <span className="font-bold">🛠️ Hasan</span>
+              <span className="text-[10px] text-slate-400">Senior DevOps / Reviewer</span>
             </button>
             <button
-              onClick={() => handleQuickLogin('employee@expert.com', 'EmployeePassword123!')}
-              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-left transition-colors font-medium"
+              onClick={() => handleQuickLogin('gopi@expert.com', 'Password123!')}
+              className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-left transition-colors font-medium flex flex-col"
             >
-              👤 Employee
+              <span className="font-bold">💼 Gopi</span>
+              <span className="text-[10px] text-slate-400">Security & Gov Manager</span>
+            </button>
+            <button
+              onClick={() => handleQuickLogin('sree@expert.com', 'Password123!')}
+              className="px-3 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 text-left transition-colors font-medium flex flex-col"
+            >
+              <span className="font-bold">💾 Sree</span>
+              <span className="text-[10px] text-slate-400">Staff Data Architect</span>
+            </button>
+            <button
+              onClick={() => handleQuickLogin('madhu@expert.com', 'Password123!')}
+              className="px-3 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 text-left transition-colors font-medium flex flex-col"
+            >
+              <span className="font-bold">👑 Madhu</span>
+              <span className="text-[10px] text-slate-400">Director / Administrator</span>
             </button>
           </div>
         </div>
