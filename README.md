@@ -69,9 +69,10 @@ Deploy the entire enterprise stack (PostgreSQL, FastAPI Backend, React Frontend 
 ### 1. Launch with Docker Compose
 ```bash
 # Windows / Linux / macOS
+cd backend/docker
 docker compose up --build -d
 ```
-*(On Windows, you can also double-click **`docker-run.bat`**).*
+*(On Windows, you can also run **`backend/docker/docker-run.bat`**).*
 
 ### 2. Access the Live Platform
 - **Web Application**: [`http://localhost:5173`](http://localhost:5173) or [`http://localhost`](http://localhost)
@@ -98,8 +99,8 @@ docker compose down -v
 If you prefer running without Docker on your local workstation:
 
 ### 1-Click Batch Launcher (Windows)
-Double-click:
-👉 **`run_all.bat`**
+Run the launcher script:
+👉 **`backend/scripts/run_all.bat`** (or `./run_all.bat` locally)
 
 ---
 
@@ -143,32 +144,32 @@ The frontend will be available at [`http://localhost:5173`](http://localhost:517
 
 ## 🖥️ Command-Line Management Suite (`cli.py`)
 
-A native terminal CLI is provided in the project root:
+A native terminal CLI is provided in the `backend/` directory:
 
 ```bash
 # Inspect platform and database status
-python cli.py status
+python backend/cli.py status
 
 # List architectural decisions
-python cli.py decisions list
+python backend/cli.py decisions list
 
 # Inspect decision details
-python cli.py decisions show 1
+python backend/cli.py decisions show 1
 
 # Approve a decision tier
-python cli.py approve 1 --notes "Architecture verified and stress-tested"
+python backend/cli.py approve 1 --notes "Architecture verified and stress-tested"
 
 # Reject a decision with mandatory rationale
-python cli.py reject 1 --reason "Alternative benchmarks required"
+python backend/cli.py reject 1 --reason "Alternative benchmarks required"
 
 # Escalate a blocked decision
-python cli.py escalate 1 --reason "Critical production blocker"
+python backend/cli.py escalate 1 --reason "Critical production blocker"
 
 # Inspect immutable audit trails
-python cli.py audit tail -n 15
+python backend/cli.py audit tail -n 15
 
 # Re-seed database with clean demo data
-python cli.py seed
+python backend/cli.py seed
 ```
 
 ---

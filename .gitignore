@@ -34,3 +34,16 @@ app_standalone.html
 .DS_Store
 Thumbs.db
 *.log
+
+# Local root convenience launchers (keep root clean on GitHub)
+/run_all.bat
+/start_backend.bat
+/start_frontend.bat
+/run.ps1
+/docker-run.bat
+/docker-run.sh
+/docker-compose.yml
+/.env.docker.example
+/cli.py
+/test_output.py
+

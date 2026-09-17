@@ -11,10 +11,13 @@ import argparse
 import subprocess
 from pathlib import Path
 
-# Add backend directory to sys.path so we can import app modules directly
 ROOT_DIR = Path(__file__).resolve().parent
-BACKEND_DIR = ROOT_DIR / "backend"
-FRONTEND_DIR = ROOT_DIR / "frontend"
+if (ROOT_DIR / "app").exists():
+    BACKEND_DIR = ROOT_DIR
+    FRONTEND_DIR = ROOT_DIR.parent / "frontend"
+else:
+    BACKEND_DIR = ROOT_DIR / "backend"
+    FRONTEND_DIR = ROOT_DIR / "frontend"
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.database import SessionLocal, engine
