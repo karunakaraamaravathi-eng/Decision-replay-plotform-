@@ -5,8 +5,9 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models import Decision, DecisionVersion, User, Role, DecisionStatus
+from app.models import Decision, DecisionVersion, User, Role, DecisionStatus, AuditAction, AuditResourceType
 from app.schemas import DecisionCreate, DecisionUpdate
+from app.services import audit_service
 
 def _create_snapshot_payload(decision: Decision) -> str:
     """Helper to serialize full decision state for version snapshotting."""
@@ -64,6 +65,17 @@ def create_decision(db: Session, decision_in: DecisionCreate, current_user: User
     db.add(v1)
     db.commit()
     db.refresh(decision)
+
+    # Audit Logging
+    audit_service.log_audit_event(
+        db=db,
+        action=AuditAction.CREATE,
+        resource_type=AuditResourceType.DECISION,
+        user_id=current_user.id,
+        resource_id=str(decision.id),
+        details={"title": decision.title, "category": decision.category}
+    )
+
     return decision
 
 def get_decision(db: Session, decision_id: int) -> Decision:
@@ -162,6 +174,17 @@ def update_decision(
     db.add(new_version)
     db.commit()
     db.refresh(decision)
+
+    # Audit Logging
+    audit_service.log_audit_event(
+        db=db,
+        action=AuditAction.UPDATE,
+        resource_type=AuditResourceType.DECISION,
+        user_id=current_user.id,
+        resource_id=str(decision.id),
+        details={"summary": summary, "status": decision.status.value}
+    )
+
     return decision
 
 def delete_decision(db: Session, decision_id: int, current_user: User) -> None:
@@ -176,8 +199,19 @@ def delete_decision(db: Session, decision_id: int, current_user: User) -> None:
             detail="Only the creator, manager, or administrator can delete this decision."
         )
 
+    title_snapshot = decision.title
     db.delete(decision)
     db.commit()
+
+    # Audit Logging
+    audit_service.log_audit_event(
+        db=db,
+        action=AuditAction.DELETE,
+        resource_type=AuditResourceType.DECISION,
+        user_id=current_user.id,
+        resource_id=str(decision_id),
+        details={"title": title_snapshot}
+    )
 
 def get_decision_versions(db: Session, decision_id: int) -> List[DecisionVersion]:
     """Retrieve full version history for a decision."""

@@ -31,6 +31,40 @@ class CommentType(str, enum.Enum):
     RATIONALE = "rationale"
 
 
+class ApprovalStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class NotificationType(str, enum.Enum):
+    APPROVAL_REQUEST = "APPROVAL_REQUEST"
+    DECISION_UPDATE = "DECISION_UPDATE"
+    ESCALATION = "ESCALATION"
+    SYSTEM = "SYSTEM"
+
+
+class AuditAction(str, enum.Enum):
+    CREATE = "CREATE"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+    SUBMIT = "SUBMIT"
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+    ESCALATE = "ESCALATE"
+    EXPORT = "EXPORT"
+    LOGIN = "LOGIN"
+
+
+class AuditResourceType(str, enum.Enum):
+    DECISION = "DECISION"
+    APPROVAL = "APPROVAL"
+    USER = "USER"
+    REPORT = "REPORT"
+    ATTACHMENT = "ATTACHMENT"
+    COMMENT = "COMMENT"
+
+
 def utc_now():
     return datetime.now(timezone.utc)
 
@@ -62,6 +96,9 @@ class User(Base):
     # Relationships
     team = relationship("Team", back_populates="users")
     decisions = relationship("Decision", back_populates="creator", cascade="all, delete-orphan")
+    approvals = relationship("Approval", back_populates="approver", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan", order_by="desc(Notification.created_at)")
+    audit_logs = relationship("AuditLog", back_populates="user")
 
 
 class Decision(Base):
@@ -82,6 +119,8 @@ class Decision(Base):
     alternatives = relationship("Alternative", back_populates="decision", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="decision", cascade="all, delete-orphan")
     attachments = relationship("Attachment", back_populates="decision", cascade="all, delete-orphan")
+    approvals = relationship("Approval", back_populates="decision", cascade="all, delete-orphan", order_by="Approval.level")
+    approval_history = relationship("ApprovalHistory", back_populates="decision", cascade="all, delete-orphan", order_by="desc(ApprovalHistory.created_at)")
 
 
 class DecisionVersion(Base):
@@ -180,3 +219,77 @@ class Attachment(Base):
     decision = relationship("Decision", back_populates="attachments")
     uploader = relationship("User")
     comment = relationship("Comment")
+
+
+class Approval(Base):
+    __tablename__ = "approvals"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    decision_id = Column(Integer, ForeignKey("decisions.id", ondelete="CASCADE"), nullable=False, index=True)
+    approver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    level = Column(Integer, default=1, nullable=False)
+    status = Column(SQLEnum(ApprovalStatus), default=ApprovalStatus.PENDING, nullable=False)
+    comments = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    # Relationships
+    decision = relationship("Decision", back_populates="approvals")
+    approver = relationship("User", back_populates="approvals")
+
+
+class ApprovalHistory(Base):
+    __tablename__ = "approval_history"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    decision_id = Column(Integer, ForeignKey("decisions.id", ondelete="CASCADE"), nullable=False, index=True)
+    approver_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    level = Column(Integer, nullable=False)
+    action = Column(String(50), nullable=False)  # SUBMITTED, APPROVED, REJECTED, ESCALATED, REASSIGNED
+    comments = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+    # Relationships
+    decision = relationship("Decision", back_populates="approval_history")
+    approver = relationship("User")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(String(50), default="APPROVAL_REQUEST", nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    link = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="notifications")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    action = Column(String(50), nullable=False, index=True)
+    resource_type = Column(String(50), nullable=False, index=True)
+    resource_id = Column(String(100), nullable=True)
+    details = Column(Text, nullable=True)  # JSON or descriptive string
+    ip_address = Column(String(45), nullable=True)
+    timestamp = Column(DateTime, default=utc_now, nullable=False, index=True)
+
+    # Relationships
+    user = relationship("User", back_populates="audit_logs")
+
+    @property
+    def parsed_details(self):
+        if not self.details:
+            return {}
+        try:
+            return json.loads(self.details) if isinstance(self.details, str) else self.details
+        except Exception:
+            return {"raw": self.details}

@@ -1,9 +1,9 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional, Any, Dict
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, DecisionStatus
+from app.models import User, DecisionStatus, ApprovalStatus
 from app.schemas import (
     DecisionCreate,
     DecisionUpdate,
@@ -12,10 +12,16 @@ from app.schemas import (
     DecisionVersionResponse,
     UserResponse,
     AlternativeResponse,
-    AttachmentResponse
+    AttachmentResponse,
+    ApprovalSubmit,
+    ApprovalAction,
+    ApprovalReject,
+    ApprovalEscalate,
+    ApprovalResponse,
+    ApprovalHistoryResponse
 )
 from app.auth import get_current_active_user
-from app.services import decision_service, alternative_service, discussion_service, file_service
+from app.services import decision_service, alternative_service, discussion_service, file_service, approval_service
 
 router = APIRouter(prefix="/decisions", tags=["Decisions & Version History"])
 
@@ -71,7 +77,7 @@ def get_decision_details(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Retrieve comprehensive details for a decision, including alternatives, versions, threaded discussions, and attachments.
+    Retrieve comprehensive details for a decision, including alternatives, versions, threaded discussions, attachments, and approval workflow chain.
     """
     decision = decision_service.get_decision(db, id)
     
@@ -113,6 +119,40 @@ def get_decision_details(
     # Attachments
     attachments = [file_service.to_attachment_response(att) for att in decision.attachments]
 
+    # Approvals & Approval History (Milestone 3)
+    approvals = [
+        ApprovalResponse(
+            id=app.id,
+            decision_id=app.decision_id,
+            approver_id=app.approver_id,
+            level=app.level,
+            status=app.status,
+            comments=app.comments,
+            created_at=app.created_at,
+            updated_at=app.updated_at,
+            approver=UserResponse.model_validate(app.approver) if app.approver else None
+        )
+        for app in decision.approvals
+    ]
+
+    history = [
+        ApprovalHistoryResponse(
+            id=h.id,
+            decision_id=h.decision_id,
+            approver_id=h.approver_id,
+            level=h.level,
+            action=h.action,
+            comments=h.comments,
+            created_at=h.created_at,
+            approver=UserResponse.model_validate(h.approver) if h.approver else None
+        )
+        for h in decision.approval_history
+    ]
+
+    # Active level calculation
+    pending_app = next((a for a in decision.approvals if a.status == ApprovalStatus.PENDING), None)
+    curr_level = pending_app.level if pending_app else (2 if decision.status == DecisionStatus.APPROVED else 1)
+
     return DecisionDetailResponse(
         id=decision.id,
         title=decision.title,
@@ -128,7 +168,10 @@ def get_decision_details(
         alternatives=alts,
         versions=vers,
         comments=comments,
-        attachments=attachments
+        attachments=attachments,
+        approvals=approvals,
+        approval_history=history,
+        current_approval_level=curr_level
     )
 
 @router.put("/{id}", response_model=DecisionResponse)
@@ -203,3 +246,152 @@ def get_decision_version_by_number(
         change_summary=v.change_summary,
         timestamp=v.timestamp
     )
+
+# --- Milestone 3: Multi-Level Approval Workflow Endpoints ---
+
+@router.post("/{id}/submit-for-review", response_model=DecisionResponse)
+def submit_for_review(
+    id: int,
+    submit_in: Optional[ApprovalSubmit] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    request: Request = None
+):
+    """
+    Submit a decision for Level 1 review, transitioning state to 'Under Review' and assigning a reviewer.
+    """
+    client_ip = request.client.host if request and request.client else None
+    reviewer_id = submit_in.reviewer_id if submit_in else None
+    comments = submit_in.comments if submit_in else None
+
+    decision = approval_service.submit_decision_for_review(
+        db=db,
+        decision_id=id,
+        current_user=current_user,
+        reviewer_id=reviewer_id,
+        comments=comments,
+        ip_address=client_ip
+    )
+    return _format_decision_response(decision)
+
+@router.post("/{id}/approve", response_model=DecisionResponse)
+def approve_decision_level(
+    id: int,
+    action_in: Optional[ApprovalAction] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    request: Request = None
+):
+    """
+    Approve decision at current level. If Level 1 passes, automatically advances to Level 2 Manager review.
+    If Level 2 passes, status transitions to 'Approved'.
+    """
+    client_ip = request.client.host if request and request.client else None
+    comments = action_in.comments if action_in else None
+
+    decision = approval_service.approve_decision(
+        db=db,
+        decision_id=id,
+        current_user=current_user,
+        comments=comments,
+        ip_address=client_ip
+    )
+    return _format_decision_response(decision)
+
+@router.post("/{id}/reject", response_model=DecisionResponse)
+def reject_decision_level(
+    id: int,
+    reject_in: ApprovalReject,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    request: Request = None
+):
+    """
+    Reject decision at review level, transitioning status to 'Rejected' with mandatory feedback explanation.
+    """
+    client_ip = request.client.host if request and request.client else None
+    decision = approval_service.reject_decision(
+        db=db,
+        decision_id=id,
+        current_user=current_user,
+        comments=reject_in.comments,
+        ip_address=client_ip
+    )
+    return _format_decision_response(decision)
+
+@router.post("/{id}/escalate", response_model=DecisionResponse)
+def escalate_decision_review(
+    id: int,
+    escalate_in: Optional[ApprovalEscalate] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    request: Request = None
+):
+    """
+    Escalate a pending review to senior manager or administrator for immediate intervention.
+    """
+    client_ip = request.client.host if request and request.client else None
+    reason = escalate_in.reason if escalate_in else None
+    new_approver_id = escalate_in.new_approver_id if escalate_in else None
+
+    decision = approval_service.escalate_decision(
+        db=db,
+        decision_id=id,
+        current_user=current_user,
+        reason=reason,
+        new_approver_id=new_approver_id,
+        ip_address=client_ip
+    )
+    return _format_decision_response(decision)
+
+@router.get("/{id}/approval-history", response_model=Dict[str, Any])
+def get_decision_approval_history(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Retrieve the historical trail of multi-level status transitions, reviewer decisions, and rationale.
+    """
+    history_data = approval_service.get_approval_history(db, id)
+    
+    # Format approvals and history with UserResponse
+    approvals_formatted = [
+        ApprovalResponse(
+            id=app.id,
+            decision_id=app.decision_id,
+            approver_id=app.approver_id,
+            level=app.level,
+            status=app.status,
+            comments=app.comments,
+            created_at=app.created_at,
+            updated_at=app.updated_at,
+            approver=UserResponse.model_validate(app.approver) if app.approver else None
+        ).model_dump()
+        for app in history_data["approvals"]
+    ]
+
+    history_formatted = [
+        ApprovalHistoryResponse(
+            id=h.id,
+            decision_id=h.decision_id,
+            approver_id=h.approver_id,
+            level=h.level,
+            action=h.action,
+            comments=h.comments,
+            created_at=h.created_at,
+            approver=UserResponse.model_validate(h.approver) if h.approver else None
+        ).model_dump()
+        for h in history_data["history"]
+    ]
+
+    return {
+        "decision_id": history_data["decision_id"],
+        "decision_title": history_data["decision_title"],
+        "status": history_data["status"],
+        "current_level": history_data["current_level"],
+        "pending_approver": history_data["pending_approver"],
+        "approvals": approvals_formatted,
+        "history": history_formatted
+    }
+

@@ -1,7 +1,15 @@
 from datetime import datetime
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
-from app.models import RoleEnum, DecisionStatus, CommentType
+from app.models import (
+    RoleEnum,
+    DecisionStatus,
+    CommentType,
+    ApprovalStatus,
+    NotificationType,
+    AuditAction,
+    AuditResourceType
+)
 
 
 # --- Team Schemas ---
@@ -215,10 +223,121 @@ class DecisionResponse(DecisionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# --- Approval Schemas ---
+class ApprovalSubmit(BaseModel):
+    reviewer_id: Optional[int] = None
+    comments: Optional[str] = None
+
+
+class ApprovalAction(BaseModel):
+    comments: Optional[str] = None
+
+
+class ApprovalReject(BaseModel):
+    comments: str = Field(..., min_length=3, description="Mandatory reason for rejection")
+
+
+class ApprovalEscalate(BaseModel):
+    reason: Optional[str] = None
+    new_approver_id: Optional[int] = None
+
+
+class ApprovalResponse(BaseModel):
+    id: int
+    decision_id: int
+    approver_id: int
+    level: int
+    status: ApprovalStatus
+    comments: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    approver: Optional[UserResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ApprovalHistoryResponse(BaseModel):
+    id: int
+    decision_id: int
+    approver_id: Optional[int] = None
+    level: int
+    action: str
+    comments: Optional[str] = None
+    created_at: datetime
+    approver: Optional[UserResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DecisionDetailResponse(DecisionResponse):
     versions: List[DecisionVersionResponse] = Field(default_factory=list)
     alternatives: List[AlternativeResponse] = Field(default_factory=list)
     comments: List[CommentResponse] = Field(default_factory=list)
     attachments: List[AttachmentResponse] = Field(default_factory=list)
+    approvals: List[ApprovalResponse] = Field(default_factory=list)
+    approval_history: List[ApprovalHistoryResponse] = Field(default_factory=list)
+    current_approval_level: Optional[int] = 1
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- Notification Schemas ---
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    message: str
+    type: str
+    is_read: bool
+    link: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationUnreadCount(BaseModel):
+    unread_count: int
+
+
+# --- Audit Log Schemas ---
+class AuditLogResponse(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    action: str
+    resource_type: str
+    resource_id: Optional[str] = None
+    details: Optional[Any] = None
+    ip_address: Optional[str] = None
+    timestamp: datetime
+    user: Optional[UserResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AuditLogListResponse(BaseModel):
+    total: int
+    items: List[AuditLogResponse]
+
+
+# --- Dashboard Schemas ---
+class EmployeeDashboardResponse(BaseModel):
+    my_decisions_count: Dict[str, int]
+    my_decisions: List[DecisionResponse]
+    pending_reviews_awaiting_input: List[DecisionResponse]
+    recent_activity: List[Dict[str, Any]]
+
+
+class ManagerDashboardResponse(BaseModel):
+    team_overview: Dict[str, Any]
+    pending_approvals_queue: List[Dict[str, Any]]
+    decision_statistics: Dict[str, Any]
+
+
+class AdminDashboardResponse(BaseModel):
+    total_users_by_role: Dict[str, int]
+    active_decisions_metrics: Dict[str, Any]
+    approval_completion_turnaround: Dict[str, Any]
+    categories_distribution: Dict[str, int]
+    platform_activity_over_time: List[Dict[str, Any]]
+    recent_audit_summary: List[AuditLogResponse]
+
